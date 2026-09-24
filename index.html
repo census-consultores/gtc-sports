@@ -400,7 +400,7 @@ var S={vista:'inicio',params:{},hist:[],torneo:null};
 
 /* ---------- utilidades ---------- */
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function titulo(s){return String(s||'').toLowerCase().replace(/\b([a-záéíóúñ])/g,function(m){return m.toUpperCase();}).replace(/\bFc\b/g,'FC').replace(/\bSa\b/g,'SA').replace(/\bBnt\b/g,'BNT').replace(/\bPb\b/g,'PB').replace(/\bGtc\b/g,'GTC').replace(/\bJr\b/g,'Jr').replace(/\bAc\b/g,'AC');}
+function titulo(s){return String(s||'').toLowerCase().replace(/(^|[^a-záéíóúñ])([a-záéíóúñ])/g,function(m,a,b){return a+b.toUpperCase();}).replace(/\bFc\b/g,'FC').replace(/\bSa\b/g,'SA').replace(/\bBnt\b/g,'BNT').replace(/\bPb\b/g,'PB').replace(/\bGtc\b/g,'GTC').replace(/\bJr\b/g,'Jr').replace(/\bAc\b/g,'AC');}
 function ini(n){var p=String(n).replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ ]/g,' ').trim().split(/\s+/).filter(function(w){return w.length>1;});return((p[0]||'?')[0]+((p[1]||'')[0]||'')).toUpperCase();}
 var MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 var DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
@@ -655,7 +655,7 @@ function vInicio(){
   var live=P.filter(function(p){return p.estado==='live';});
   var deHoy=P.filter(function(p){return p.f===hoy;}).sort(function(a,b){return(a.h||'').localeCompare(b.h||'');});
   var prox=P.filter(function(p){return p.estado==='pre'&&(p.f>hoy||(p.f===hoy));}).sort(function(a,b){return(a.f+a.h).localeCompare(b.f+b.h);});
-  var recientes=P.filter(function(p){return p.estado==='fin'&&(p.gl!=null||p.gcode);}).sort(function(a,b){return(b.f+b.h).localeCompare(a.f+a.h);}).slice(0,4);
+  var recientes=P.filter(function(p){return p.gl!=null&&p.gv!=null&&TOR[p.tor]&&TOR[p.tor].estado!=='finalizado';}).sort(function(a,b){return(b.f+b.h).localeCompare(a.f+a.h);}).slice(0,4);
   var prX=prox[0];
   var h='';
   h+='<div class="hero"><img src="'+HERO+'" alt="Guayaquil Tenis Club"><div class="hz">'+
@@ -1049,7 +1049,7 @@ function vCalendario(){
 /* ================= RANKING (hub) ================= */
 function vNovedades(){
   var hoy=hoyISO(), P=allPartidos().map(liveState);
-  var recientes=P.filter(function(p){return p.estado==='fin'&&(p.gl!=null||p.gcode);}).sort(function(a,b){return(b.f+b.h).localeCompare(a.f+a.h);}).slice(0,8);
+  var recientes=P.filter(function(p){return p.gl!=null&&p.gv!=null&&TOR[p.tor]&&TOR[p.tor].estado!=='finalizado';}).sort(function(a,b){return(b.f+b.h).localeCompare(a.f+a.h);}).slice(0,8);
   var prox=P.filter(function(p){return p.estado==='pre'&&p.f>=hoy;}).sort(function(a,b){return(a.f+a.h).localeCompare(b.f+b.h);}).slice(0,6);
   var fin=torPorEstado('finalizado');
   var h='<div class="wrap" style="padding-top:14px"><h1 class="page">Novedades</h1><p class="page-sub">Lo último de la competencia del Club: resultados y próximos partidos.</p>';
