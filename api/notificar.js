@@ -5,7 +5,7 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = 'GTC Sports <notificaciones@gtcsports.ec>';
-const REPLY = 'deportes@gtcsports.ec';
+const REPLY = ['deportes@guayaquiltenisclub.ec', 'john.arias@censusconsultores.com.ec'];
 const APP = process.env.GTC_APP_URL || 'https://gtcsports.ec';
 const NAVY = '#1B2050';
 
