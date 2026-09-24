@@ -337,6 +337,30 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
 .sw2{width:40px;height:23px;border-radius:20px;background:var(--line);position:relative;flex:none;transition:.15s}
 .sw2 i{position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#fff;box-shadow:var(--sh-sm);transition:.18s}
 .sw2.on{background:var(--laurel)} .sw2.on i{left:19px}
+
+/* ---------- Consentimiento de datos ---------- */
+#consent{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tab) + 10px);z-index:70;
+  width:calc(100% - 24px);max-width:616px;background:var(--card);border:1px solid var(--line);
+  border-radius:15px;box-shadow:var(--sh-lg);padding:13px 15px;display:flex;align-items:center;gap:12px;
+  animation:cup .3s ease both}
+@keyframes cup{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+#consent .cx{flex:1;min-width:0;font-size:12px;line-height:1.5;color:var(--muted)}
+#consent .cx b{color:var(--ink);font-weight:700}
+#consent .cx a{color:var(--royal);font-weight:700;text-decoration:none;white-space:nowrap}
+#consent .ok{flex:none;padding:10px 16px;border-radius:11px;background:var(--gold);color:#231a00;font-weight:800;font-size:13px}
+@media(max-width:460px){#consent{flex-direction:column;align-items:stretch;gap:9px} #consent .ok{width:100%}}
+.terms h3{font-size:15px;font-weight:800;color:var(--ink);margin:20px 0 7px;letter-spacing:-.01em}
+.terms p{font-size:13px;line-height:1.65;color:var(--muted);margin-bottom:8px}
+.terms ul{margin:4px 0 10px 18px} .terms li{font-size:13px;line-height:1.6;color:var(--muted);margin-bottom:4px}
+.terms .upd{font-size:11px;color:var(--muted-2);margin-top:4px}
+.chkrow{display:flex;gap:11px;align-items:flex-start;margin-top:16px;padding:13px;border-radius:13px;
+  background:var(--line-2);cursor:pointer}
+.chkrow .box{width:22px;height:22px;border-radius:7px;border:2px solid var(--muted-2);flex:none;display:grid;place-items:center;transition:.15s;margin-top:1px}
+.chkrow.on .box{background:var(--laurel);border-color:var(--laurel)}
+.chkrow .box svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:3;opacity:0;transition:.15s}
+.chkrow.on .box svg{opacity:1}
+.chkrow .t{font-size:12px;line-height:1.5;color:var(--ink)} .chkrow .t a{color:var(--royal);font-weight:700}
+
 </style>
 </head>
 <body>
@@ -1021,7 +1045,8 @@ function vMas(){
   h+=secHead('Aplicación');
   h+='<div class="row-list">'+
     liNav('bell','Notificaciones','Correo y WhatsApp de tus partidos',"ir('notificaciones',{})")+
-    liNav('info','Acerca de GTC Sports','Qué es y quién la desarrolla',"ir('acerca',{})")+'</div>';
+    liNav('info','Acerca de GTC Sports','Qué es y quién la desarrolla',"ir('acerca',{})")+
+    liNav('doc','Términos y política de datos','Cómo tratamos tu información',"ir('terminos',{})")+'</div>';
   if(s){ h+=secHead('Tu sesión');
     h+='<div class="card"><div class="li"><span class="ic" style="background:var(--navy)">'+sv(IC.escudo)+'</span>'+
       '<div class="tx"><b>'+esc(s.nombre||'Socio')+'</b><span>Socio '+esc(s.socio||'—')+' · entró con '+esc(s.prov||'—')+'</span></div>'+
@@ -1115,10 +1140,14 @@ function accCrear(){
     '<div class="field"><label>Deportes de interés</label><div class="chips" id="depChips" style="flex-wrap:wrap;overflow:visible">'+
       DATA.disciplinas.map(function(d){var on=sel.indexOf(d.id)>=0;
         return '<button type="button" class="chip'+(on?' on':'')+'" onclick="toggleDep(\''+d.id+'\')"><span class="dt" style="background:'+d.c+'"></span>'+esc(d.n)+'</button>';}).join('')+'</div></div>'+
+    '<div class="chkrow" id="chkC" onclick="toggleConsent()"><span class="box"><svg viewBox="0 0 24 24"><path d="M4 12l6 6L20 6"/></svg></span>'+
+      '<span class="t">Autorizo al Club a usar mis datos y mi actividad en la app para comunicaciones y <b>campañas deportivas</b>. '+
+      '<a onclick="event.stopPropagation();ir(\'terminos\',{})">Ver términos y condiciones</a></span></div>'+
     '<div id="errV"></div>'+
-    '<button class="btn" id="btC" style="margin-top:16px" onclick="crearCuenta()">Crear cuenta y entrar</button>'+
+    '<button class="btn" id="btC" style="margin-top:14px" onclick="crearCuenta()">Crear cuenta y entrar</button>'+
     '<button class="btn ghost" onclick="ir(\'acceso\',{},true)">Usar otra cuenta</button>';
 }
+function toggleConsent(){window.__consent=!window.__consent;var c=document.getElementById('chkC');if(c)c.classList.toggle('on',!!window.__consent);}
 function toggleDep(id){var s=window.__depSel||[];var i=s.indexOf(id);if(i>=0)s.splice(i,1);else s.push(id);window.__depSel=s;
   var c=document.getElementById('depChips');if(c){var ds=DIS[id];/* re-render chips */
     c.innerHTML=DATA.disciplinas.map(function(d){var on=s.indexOf(d.id)>=0;
@@ -1141,24 +1170,73 @@ function crearCuenta(){
   if(!/.+@.+\..+/.test(correo))return bad('Escribe un correo válido para las comunicaciones.','fCorreo');
   if(wa.replace(/\D/g,'').length<9)return bad('Escribe un número de WhatsApp válido.','fWa');
   if(!socio)return bad('El número de socio es obligatorio para iniciar sesión.','fSocio');
+  if(!window.__consent){ if(err)err.innerHTML='<div class="aviso">Debes autorizar el uso de tus datos para crear la cuenta. Puedes leer los términos antes de aceptar.</div>'; var cc=document.getElementById('chkC'); if(cc){cc.style.borderColor='var(--rojo)';cc.scrollIntoView({behavior:'smooth',block:'center'});} return; }
   var b=document.getElementById('btC');if(b){b.textContent='Creando…';b.disabled=true;}
   /* Demo: en producción aquí el servidor valida el socio contra el padrón y devuelve
      los torneos donde ESA persona está inscrita. */
   gtcAuth.guardar({nombre:nombre.trim(),correoAdicional:correo.trim(),whatsapp:wa.trim(),socio:socio,
     deportes:dep,prov:(S.idProv||{}).proveedor||'correo',rol:'socio',
-    torneos:['olimpiadas2026'],creada:new Date().toISOString()});
+    torneos:['olimpiadas2026'],creada:new Date().toISOString(),
+    consentMarketing:true, consentFecha:new Date().toISOString()});
+  try{ localStorage.setItem('gtc_consent', JSON.stringify({ok:true,fecha:new Date().toISOString(),cuenta:true})); }catch(e){}
   window.__depSel=null;
   S.hist=[]; ir('torneos',{seg:'mis'},true);
 }
 
 /* ================= RENDER + BOOT ================= */
+/* ================= CONSENTIMIENTO / TÉRMINOS ================= */
+function consentOK(){ try{ return !!localStorage.getItem('gtc_consent'); }catch(e){ return true; } }
+function darConsent(){ try{ localStorage.setItem('gtc_consent', JSON.stringify({ok:true,fecha:new Date().toISOString()})); }catch(e){}
+  var c=document.getElementById('consent'); if(c) c.remove(); }
+function bannerConsent(){
+  if(consentOK()) return '';
+  if(S.vista==='acceso'||S.vista==='terminos') return '';
+  return '<div id="consent"><div class="cx"><b>Tu privacidad.</b> Al usar GTC Sports autorizas al Club a tratar tus datos y tu actividad en la app '+
+    'para mejorar el servicio y enviarte comunicaciones y campañas deportivas. <a onclick="ir(\'terminos\',{})">Ver términos</a></div>'+
+    '<button class="ok" onclick="darConsent()">Aceptar</button></div>';
+}
+function vTerminos(){
+  var h=backBar('Volver')+'<div class="wrap" style="padding-top:14px"><h1 class="page">Términos y política de datos</h1>'+
+    '<p class="page-sub">Guayaquil Tenis Club · GTC Sports. Última actualización: 24/09/2026.</p>'+
+    '<div class="terms" style="margin-top:8px">'+
+    '<h3>1. Quién trata tus datos</h3>'+
+    '<p>El responsable del tratamiento es el <b>Guayaquil Tenis Club</b>, a través de su aplicación deportiva GTC Sports. '+
+      'Contacto: deportes@gtcsports.ec.</p>'+
+    '<h3>2. Qué datos recogemos</h3>'+
+    '<ul><li>Los que registras: nombre, correo de comunicaciones, WhatsApp, número de socio y deportes de interés.</li>'+
+    '<li>Tu actividad en la app: torneos, partidos, equipos y secciones que consultas, y datos técnicos del dispositivo.</li></ul>'+
+    '<h3>3. Para qué los usamos</h3>'+
+    '<ul><li>Operar la app y darte acceso a los torneos donde estás inscrito.</li>'+
+    '<li>Enviarte avisos de tus partidos, cambios y resultados.</li>'+
+    '<li><b>Comunicaciones y campañas de marketing deportivo del Club</b>, con base en tu actividad e intereses.</li>'+
+    '<li>Estadísticas y analítica para mejorar el servicio.</li></ul>'+
+    '<h3>4. Base y tu consentimiento</h3>'+
+    '<p>El tratamiento con fines de marketing se realiza con tu <b>consentimiento</b>, que otorgas al aceptar estos términos y que '+
+      'puedes retirar en cualquier momento desde <i>Más → Notificaciones</i> o escribiendo a deportes@gtcsports.ec.</p>'+
+    '<h3>5. Con quién se comparten</h3>'+
+    '<p>No vendemos tus datos. Se procesan en proveedores tecnológicos que prestan servicio a la app (alojamiento y envío de correos), '+
+      'bajo confidencialidad y solo para las finalidades anteriores.</p>'+
+    '<h3>6. Protección de menores</h3>'+
+    '<p>Las categorías infantiles y juveniles tienen protección reforzada: sus nóminas se muestran enmascaradas al público y el acceso '+
+      'a datos sensibles queda registrado. El consentimiento de menores corresponde a su representante legal.</p>'+
+    '<h3>7. Tus derechos</h3>'+
+    '<p>Puedes ejercer tus derechos de acceso, rectificación, eliminación, oposición y portabilidad escribiendo a deportes@gtcsports.ec. '+
+      'Conservamos tus datos mientras uses la app y por los plazos legales aplicables; luego se eliminan o anonimizan.</p>'+
+    '<p class="upd">Al pulsar “Aceptar” dejas constancia de tu consentimiento informado conforme a la Ley Orgánica de Protección de Datos Personales del Ecuador.</p>'+
+    '<button class="btn" style="margin-top:14px" onclick="darConsent();atras()">Aceptar y continuar</button>'+
+    '</div></div>'+pie();
+  return h;
+}
 var VIS={inicio:vInicio,torneos:vTorneos,torneo:vTorneo,calendario:vCalendario,ranking:vRanking,mas:vMas,
-  partido:vPartido,equipo:vEquipo,disciplina:vDisciplina,reglamento:vReglamento,acerca:vAcerca,acceso:vAcceso,notificaciones:vNotificaciones};
-var CONTEXT=['partido','equipo','disciplina','reglamento','acerca','notificaciones'];
+  partido:vPartido,equipo:vEquipo,disciplina:vDisciplina,reglamento:vReglamento,acerca:vAcerca,acceso:vAcceso,notificaciones:vNotificaciones,terminos:vTerminos};
+var CONTEXT=['partido','equipo','disciplina','reglamento','acerca','notificaciones','terminos'];
 function render(){
   var top=document.getElementById('top');
   top.hidden=(S.vista==='acceso');
   document.getElementById('app').innerHTML=(VIS[S.vista]||vInicio)();
+  var old=document.getElementById('consent'); if(old) old.remove();
+  var bc=bannerConsent();
+  if(bc){ document.body.insertAdjacentHTML('beforeend', bc); }
   pintaNav();
 }
 document.getElementById('escT').onclick=function(){S.hist=[];S.torneo=null;ir('inicio',{},true);};
