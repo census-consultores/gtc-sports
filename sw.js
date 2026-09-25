@@ -1,5 +1,5 @@
 // GTC Sports service worker v10 — network-first para HTML, cache-first para logos/estáticos
-const CACHE='gtc-v18';
+const CACHE='gtc-v19';
 const IMG='gtc-img-v2';
 const CORE=['/','/index.html','/manifest.webmanifest','/icon-192.png','/icon-512.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE).catch(()=>{})));});
