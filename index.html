@@ -542,6 +542,15 @@ function flag(code,size){size=size||30;var id='f'+code+size+Math.random().toStri
     ec:'<rect width="60" height="30" y="0" fill="#FFDD00"/><rect width="60" height="15" y="30" fill="#0072CE"/><rect width="60" height="15" y="45" fill="#EF3340"/>'}[code]||'<rect width="60" height="60" fill="#889"/>';
   return '<span class="flag" style="width:'+size+'px;height:'+size+'px"><svg width="'+size+'" height="'+size+'" viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice"><defs><clipPath id="'+id+'"><circle cx="30" cy="30" r="30"/></clipPath></defs><g clip-path="url(#'+id+')">'+body+'</g></svg></span>';}
 
+var HIST_2025={"act": "24/10/2025", "cats": [{"n": "INFANTIL 2020-2019", "eq": [{"n": "CLUB RENTERIA", "tot": 70, "p": {"Tenis": 30, "Carrera": 20, "Natación": 20}}, {"n": "ESPAÑA", "tot": 70, "p": {"Tenis": 10, "Carrera": 30, "Natación": 30}}, {"n": "LOS PIBES FC", "tot": 45, "p": {"Tenis": 20, "Carrera": 10, "Natación": 15}}, {"n": "DINAMITA", "tot": 25, "p": {"Tenis": 15, "Natación": 10}}, {"n": "LOS DRAGONES", "tot": 0, "p": {"Carrera": 15}}]}, {"n": "INFANTIL 2017-2018", "eq": [{"n": "GENERAC", "tot": 70, "p": {"Tenis": 30, "Carrera": 10, "Natación": 30}}, {"n": "RIVER JR", "tot": 55, "p": {"Tenis": 15, "Carrera": 30, "Natación": 10}}, {"n": "ENERGY", "tot": 55, "p": {"Tenis": 20, "Carrera": 15, "Natación": 20}}, {"n": "SPORTING", "tot": 25, "p": {"Tenis": 10, "Natación": 15}}, {"n": "NANKATSU", "tot": 20, "p": {"Carrera": 20}}]}, {"n": "INFANTIL 2015-2016", "eq": [{"n": "CHELSEA", "tot": 90, "p": {"Ping Pong": 15, "Tenis": 30, "Carrera": 30, "Natación": 15}}, {"n": "ENI FC", "tot": 70, "p": {"Ping Pong": 30, "Tenis": 10, "Natación": 30}}, {"n": "CANCHERITOS", "tot": 70, "p": {"Ping Pong": 20, "Tenis": 20, "Carrera": 10, "Natación": 20}}, {"n": "INTERSAMBO 2016", "tot": 45, "p": {"Ping Pong": 10, "Tenis": 15, "Carrera": 20}}, {"n": "TITANES", "tot": 25, "p": {"Carrera": 15, "Natación": 10}}, {"n": "CHELSEA LION", "tot": 0, "p": {}}]}, {"n": "INFANTIL 2014 -2013", "eq": [{"n": "GOATS", "tot": 85, "p": {"Ping Pong": 30, "Tenis": 15, "Carrera": 20, "Natación": 20}}, {"n": "CHOP CHOPS", "tot": 75, "p": {"Tenis": 30, "Carrera": 15, "Natación": 30}}, {"n": "INTERSAMBO ALPHA", "tot": 60, "p": {"Ping Pong": 20, "Tenis": 10, "Carrera": 30}}, {"n": "INTERSAMBO BETA", "tot": 55, "p": {"Ping Pong": 10, "Tenis": 20, "Carrera": 10, "Natación": 15}}, {"n": "SANTOS JR", "tot": 25, "p": {"Ping Pong": 15, "Natación": 10}}, {"n": "ROCKING ROOKIES 2.0", "tot": 0, "p": {}}]}, {"n": "JUVENIL 2012-2011", "eq": [{"n": "CHIFLETON", "tot": 125, "p": {"Ping Pong": 20, "Tenis": 30, "Beach Tenis": 30, "Pádel": 15, "Natación": 30}}, {"n": "ALPHA", "tot": 120, "p": {"Ping Pong": 30, "Tenis": 15, "Carrera": 20, "Beach Tenis": 15, "Pádel": 20, "Natación": 20}}, {"n": "FLAMENGO", "tot": 90, "p": {"Ping Pong": 15, "Tenis": 20, "Carrera": 15, "Beach Tenis": 10, "Pádel": 30}}, {"n": "AJAX", "tot": 65, "p": {"Ping Pong": 10, "Tenis": 10, "Carrera": 30, "Natación": 15}}, {"n": "BRASIL", "tot": 0, "p": {"Carrera": 10, "Beach Tenis": 20, "Pádel": 10, "Natación": 10}}]}, {"n": "JUVENIL 2010-2009", "eq": [{"n": "ALPHA", "tot": 150, "p": {"Ping Pong": 15, "Tenis": 30, "Carrera": 30, "Beach Tenis": 30, "Pádel": 15, "Natación": 30}}, {"n": "REAL BETIS BALONPIE", "tot": 110, "p": {"Ping Pong": 30, "Tenis": 20, "Carrera": 20, "Beach Tenis": 10, "Pádel": 30}}, {"n": "CAIPI", "tot": 85, "p": {"Ping Pong": 10, "Tenis": 10, "Carrera": 15, "Beach Tenis": 20, "Pádel": 10, "Natación": 20}}, {"n": "ATLETI", "tot": 60, "p": {"Tenis": 15, "Carrera": 10, "Beach Tenis": 15, "Pádel": 20}}, {"n": "MOICA", "tot": 20, "p": {"Ping Pong": 20}}, {"n": "CACAO", "tot": 0, "p": {}}]}, {"n": "JUVENIL 2008-2007", "eq": [{"n": "PROPER", "tot": 135, "p": {"Ping Pong": 20, "Tenis": 30, "Carrera": 15, "Beach Tenis": 20, "Pádel": 20, "Natación": 30}}, {"n": "ENYIMBA", "tot": 110, "p": {"Ping Pong": 10, "Carrera": 30, "Beach Tenis": 30, "Fútbol 5": 10, "Pádel": 30}}, {"n": "SANTOS FC", "tot": 95, "p": {"Ping Pong": 30, "Tenis": 15, "Carrera": 20, "Beach Tenis": 10, "Fútbol 5": 20}}, {"n": "PRECIA", "tot": 75, "p": {"Ping Pong": 15, "Tenis": 20, "Fútbol 5": 30, "Pádel": 10}}, {"n": "AJAX", "tot": 55, "p": {"Tenis": 10, "Beach Tenis": 15, "Fútbol 5": 15, "Pádel": 15}}]}, {"n": "SENIOR", "eq": [{"n": "CAS JR", "tot": 140, "p": {"Ping Pong": 30, "Tenis": 20, "Carrera": 20, "Fútbol 5": 30, "Pádel": 10, "Natación": 30}}, {"n": "CHEPIBES", "tot": 140, "p": {"Ping Pong": 20, "Tenis": 15, "Carrera": 15, "Beach Tenis": 30, "Pádel": 30, "Cuarenta": 15, "Natación": 15}}, {"n": "DREAM TEAM", "tot": 90, "p": {"Ping Pong": 10, "Carrera": 30, "Beach Tenis": 20, "Fútbol 5": 10, "Cuarenta": 20}}, {"n": "LOS SANTOS", "tot": 85, "p": {"Tenis": 30, "Beach Tenis": 10, "Fútbol 5": 20, "Pádel": 15, "Natación": 10}}, {"n": "APOLO", "tot": 80, "p": {"Ping Pong": 15, "Tenis": 10, "Carrera": 10, "Pádel": 15, "Cuarenta": 10, "Natación": 20}}, {"n": "LIVERPOOL", "tot": 50, "p": {"Beach Tenis": 15, "Fútbol 5": 15, "Pádel": 20}}, {"n": "RIVIERA JR", "tot": 30, "p": {"Cuarenta": 30}}, {"n": "LA SAZON", "tot": 0, "p": {}}]}, {"n": "DAMAS", "eq": [{"n": "CHEPIBES", "tot": 130, "p": {"Tenis": 20, "Carrera": 30, "Beach Tenis": 30, "Pádel": 20, "Natación": 30}}, {"n": "BLESS", "tot": 115, "p": {"Tenis": 30, "Carrera": 20, "Beach Tenis": 15, "Pádel": 30, "Natación": 20}}, {"n": "PINLET", "tot": 80, "p": {"Tenis": 15, "Carrera": 15, "Beach Tenis": 20, "Pádel": 15, "Natación": 15}}]}, {"n": "MASTER", "eq": [{"n": "CHEPIBES", "tot": 235, "p": {"Ping Pong": 10, "Tenis": 30, "Carrera": 30, "Beach Tenis": 20, "Fútbol 5": 30, "Pádel": 30, "Cuarenta": 20, "Natación": 30, "Beach Volley": 15, "Baloncesto": 20}}, {"n": "MARRIOT", "tot": 230, "p": {"Ping Pong": 30, "Tenis": 20, "Carrera": 20, "Beach Tenis": 30, "Fútbol 5": 20, "Pádel": 20, "Cuarenta": 30, "Natación": 15, "Beach Volley": 30, "Baloncesto": 15}}, {"n": "PINLET", "tot": 115, "p": {"Ping Pong": 15, "Tenis": 10, "Beach Tenis": 10, "Pádel": 15, "Cuarenta": 15, "Natación": 20, "Baloncesto": 30}}, {"n": "MEDEC", "tot": 95, "p": {"Tenis": 15, "Carrera": 10, "Beach Tenis": 15, "Fútbol 5": 15, "Cuarenta": 10, "Natación": 10, "Beach Volley": 20}}, {"n": "MANCHESTER", "tot": 75, "p": {"Ping Pong": 20, "Carrera": 15, "Fútbol 5": 10, "Pádel": 10, "Beach Volley": 10, "Baloncesto": 10}}]}]};
+function histNorm(s){s=String(s||'');try{s=s.normalize('NFD').replace(/[̀-ͯ]/g,'');}catch(e){}return s.toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();}
+function histMatch(a,b){a=histNorm(a);b=histNorm(b);if(!a||!b)return false;if(a===b)return true;if(a.length>4&&b.length>4&&(a.indexOf(b)>=0||b.indexOf(a)>=0))return true;return false;}
+function histFind(name){var out=[];HIST_2025.cats.forEach(function(c){for(var i=0;i<c.eq.length;i++){if(histMatch(c.eq[i].n,name)){out.push({cat:c.n,pos:i+1,tot:c.eq[i].tot,p:c.eq[i].p});break;}}});return out;}
+/* récord por deporte del equipo en el torneo vigente (se alimenta de los resultados registrados) */
+function teamSportRecord(teamId,cat){var out=[];var discs={};DATA.partidos.forEach(function(p){if(p.cat===cat&&p.tipo!=='gen')discs[p.d]=1;});
+  Object.keys(discs).forEach(function(disc){var st=standings(disc,cat),pos=-1,row=null;for(var i=0;i<st.length;i++){if(st[i].id===teamId){pos=i+1;row=st[i];break;}}if(row&&row.pj>0)out.push({disc:disc,pos:pos,pj:row.pj,g:row.g,e:row.e,p:row.p,pts:row.pts});});
+  return out;}
+
 /* ================= MODELO DE TORNEOS ================= */
 var TOR={
   olimpiadas2026:{id:'olimpiadas2026',tipo:'oli',n:'Olimpiadas GTC',sub:'Edición 2026',estado:'curso',
@@ -552,9 +561,13 @@ var TOR={
   mundialito44:{id:'mundialito44',tipo:'mun',n:'Mundialito +44',sub:'Torneo GTC +44',estado:'finalizado',
     desde:'2026-05-09',hasta:'2026-07-18',protegido:false,campeon:'PB',
     kpis:[['Selecciones',6],['Partidos',19],['Goles',65],['Campeón','🏆']],
-    tabs:[['m_resumen','Resumen'],['m_partidos','Partidos'],['m_tabla','Tabla'],['m_gol','Goleadores'],['m_equipos','Equipos']]}
+    tabs:[['m_resumen','Resumen'],['m_partidos','Partidos'],['m_tabla','Tabla'],['m_gol','Goleadores'],['m_equipos','Equipos']]},
+  olimpiadas2025:{id:'olimpiadas2025',tipo:'oli',n:'Olimpiadas GTC',sub:'Edición 2025',estado:'finalizado',
+    desde:'2025-08-01',hasta:'2025-10-24',protegido:false,
+    kpis:[['Categorías',10],['Equipos',49],['Disciplinas',11],['Edición','2025']],
+    tabs:[]}
 };
-var TOR_LIST=[TOR.olimpiadas2026,TOR.mundialito44];
+var TOR_LIST=[TOR.olimpiadas2026,TOR.mundialito44,TOR.olimpiadas2025];
 function torPorEstado(est){return TOR_LIST.filter(function(t){return est==='curso'?t.estado==='curso':t.estado==='finalizado';});}
 
 
@@ -680,7 +693,7 @@ function pintaNav(){
 function goGlobal(v){ if(v==='inicio'||v==='torneos'||v==='calendario'||v==='novedades'||v==='mas'){S.hist=[];S.torneo=(v==='inicio'||v==='torneos'||v==='calendario'||v==='novedades')?null:S.torneo;} ir(v,{},true);}
 
 function registradoEn(id){if(gtcAuth.esAdmin())return true;var s=gtcAuth.cargar();return !!(s&&s.torneos&&s.torneos.indexOf(id)>=0);}
-function abrirTorneo(id){var t=TOR[id];S.torneo=id;S.hist=[];ir('torneo',{tab:t.tabs[0][0]},true);}
+function abrirTorneo(id){S.torneo=id;S.hist=[];if(id==='olimpiadas2025'){ir('hist2025',{},true);return;}var t=TOR[id];ir('torneo',{tab:t.tabs[0][0]},true);}
 /* ¿puede ver el detalle de este torneo? Finalizados: público. En curso: admin o sesión iniciada. */
 function puedeVerTorneo(t){ if(!t)return false; if(t.estado==='finalizado')return true; return gtcAuth.esAdmin()||!!gtcAuth.cargar(); }
 
@@ -1204,6 +1217,34 @@ function vPartido(){
 }
 function liDato(k,v){return '<div class="li"><div class="tx"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-2);font-weight:700">'+esc(k)+'</span><b style="font-weight:700">'+esc(v)+'</b></div></div>';}
 
+/* ================= HISTÓRICO OLIMPIADAS 2025 ================= */
+function vHist2025(){
+  var __bb=backBar('Torneos',"ir('torneos',{seg:'fin'},true)");
+  var cats=HIST_2025.cats;
+  var ci=+(S.params.hc||0); if(isNaN(ci)||ci<0||ci>=cats.length)ci=0;
+  var c=cats[ci];
+  var h='<div class="wrap" style="padding-top:16px">';
+  h+='<div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">'+
+    '<span class="ic" style="width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#0C1030,#20264f);color:#F0D98A">'+sv2(IC.estrella,24)+'</span>'+
+    '<div><h1 class="page" style="font-size:23px">Olimpiadas GTC 2025</h1>'+
+    '<p class="page-sub">Resultados finales · Actualizado '+esc(HIST_2025.act)+'</p></div></div>';
+  h+='<div class="chips" style="margin:14px 0">'+cats.map(function(x,i){return '<button class="chip'+(i===ci?' on':'')+'" onclick="ir(\'hist2025\',{hc:'+i+'},true)">'+esc(x.n)+'</button>';}).join('')+'</div>';
+  h+=secHead('Tabla general · '+esc(c.n));
+  h+='<div class="card" style="overflow-x:auto"><table class="st"><thead><tr><th class="pos"></th><th class="l">Equipo</th><th>Pts</th></tr></thead><tbody>'+
+    c.eq.map(function(r,i){return '<tr class="'+(i<3?'cl':'')+'"><td class="pos">'+(i+1)+'</td><td class="l"><div style="display:flex;align-items:center;gap:9px">'+badge({id:slugTeam(r.n),n:r.n},28)+'<span class="en">'+esc(titulo(r.n))+'</span></div></td><td class="pts">'+r.tot+'</td></tr>';}).join('')+
+    '</tbody></table></div>';
+  h+=secHead('Puntos por disciplina');
+  h+=c.eq.map(function(r){var ks=Object.keys(r.p);
+    return '<div class="card" style="margin-bottom:8px"><div style="padding:11px 14px">'+
+      '<div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">'+badge({id:slugTeam(r.n),n:r.n},26)+'<b style="font-weight:800">'+esc(titulo(r.n))+'</b><span style="margin-left:auto;font-weight:800;color:#B5892A">'+r.tot+' pts</span></div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px">'+(ks.length?ks.map(function(d){return '<span style="font-size:11px;background:var(--line-2);border-radius:999px;padding:3px 9px"><b>'+esc(d)+'</b> '+r.p[d]+'</span>';}).join(''):'<span style="font-size:12px;color:var(--muted)">Sin puntos por disciplina</span>')+'</div>'+
+    '</div></div>';
+  }).join('');
+  h+='<div class="nota" style="margin-top:6px">Puntaje oficial de la edición 2025. Los escudos se reutilizan cuando el equipo vuelve a participar en 2026.</div>';
+  h+='</div>'+pie();
+  return __bb+h;
+}
+
 /* ================= EQUIPO (detalle, con protección de menores) ================= */
 function vEquipo(){
   var __bb=backBar('Equipos',"S.torneo='olimpiadas2026';ir('torneo',{tab:'equipos'},true)");
@@ -1217,6 +1258,26 @@ function vEquipo(){
   h+='<div class="kpis" style="--n:2;margin-top:12px">'+
     '<div class="kpi"><b>'+e.j.length+'</b><span>Deportistas</span></div>'+
     '<div class="kpi"><b>'+parts.length+'</b><span>Partidos</span></div></div>';
+  var rec=teamSportRecord(e.id,e.cat);
+  if(rec.length){
+    h+=secHead('Estadísticas · Olimpiadas 2026');
+    h+='<div class="card" style="overflow-x:auto"><table class="st"><thead><tr><th class="l">Deporte</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>Pos</th><th>Pts</th></tr></thead><tbody>'+
+      rec.map(function(r){var dn=(DIS[r.disc]&&DIS[r.disc].n)||r.disc;return '<tr><td class="l"><span class="en">'+esc(dn)+'</span></td><td>'+r.pj+'</td><td>'+r.g+'</td><td>'+r.e+'</td><td>'+r.p+'</td><td>'+(r.pos>0?r.pos+'°':'—')+'</td><td class="pts">'+r.pts+'</td></tr>';}).join('')+
+      '</tbody></table></div>';
+    h+='<div class="nota" style="margin-top:8px">Se actualiza con cada resultado que registra la Comisión de Deportes.</div>';
+  }
+  var hist=histFind(e.n);
+  if(hist.length){
+    h+=secHead('Histórico · Olimpiadas 2025');
+    hist.forEach(function(hh){var ks=Object.keys(hh.p);
+      h+='<div class="card" style="margin-bottom:10px"><div style="padding:12px 15px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">'+
+          '<b style="font-weight:800">'+esc(hh.cat)+'</b>'+
+          '<span style="font-weight:800;color:#B5892A">'+hh.pos+'° · '+hh.tot+' pts</span></div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:6px">'+(ks.length?ks.map(function(d){return '<span style="font-size:11px;background:var(--line-2);border-radius:999px;padding:3px 9px"><b>'+esc(d)+'</b> '+hh.p[d]+'</span>';}).join(''):'<span style="font-size:12px;color:var(--muted)">—</span>')+'</div>'+
+      '</div></div>';
+    });
+  }
   h+=secHead('Plantilla');
   if(menor&&!puede){
     h+='<div class="prot">'+sv(IC.candado)+'<div><b>Nómina protegida</b><p>Por tratarse de una categoría de menores, los nombres completos solo están disponibles para el delegado del equipo y la Comisión de Deportes. Se muestran las iniciales.</p></div></div>';
@@ -1634,8 +1695,8 @@ function vTerminos(){
   return h;
 }
 var VIS={inicio:vInicio,torneos:vTorneos,torneo:vTorneo,calendario:vCalendario,novedades:vNovedades,mas:vMas,
-  partido:vPartido,equipo:vEquipo,disciplina:vDisciplina,reglamento:vReglamento,acerca:vAcerca,acceso:vAcceso,contacto:vContacto,notificaciones:vNotificaciones,terminos:vTerminos,admin:vAdmin};
-var CONTEXT=['partido','equipo','disciplina','reglamento','acerca','notificaciones','terminos','admin'];
+  partido:vPartido,equipo:vEquipo,disciplina:vDisciplina,reglamento:vReglamento,acerca:vAcerca,acceso:vAcceso,contacto:vContacto,notificaciones:vNotificaciones,terminos:vTerminos,admin:vAdmin,hist2025:vHist2025};
+var CONTEXT=['partido','equipo','disciplina','reglamento','acerca','notificaciones','terminos','admin','hist2025'];
 function render(){
   var top=document.getElementById('top');
   top.hidden=(S.vista==='acceso'||S.vista==='contacto');
