@@ -374,6 +374,32 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
 .chkrow.on .box svg{opacity:1}
 .chkrow .t{font-size:12px;line-height:1.5;color:var(--ink)} .chkrow .t a{color:var(--royal);font-weight:700}
 
+/* ===== Sensación de app nativa (Opción 1) ===== */
+*{-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{-webkit-user-select:none;-moz-user-select:none;user-select:none;overscroll-behavior-y:none}
+.terms,.terms *,.acc .bd,.acc .bd *,input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
+img{-webkit-touch-callout:none}
+button,a,.li,.mc,.tc,.chip,.side{ -webkit-tap-highlight-color:transparent }
+/* barra compacta del torneo (título grande, se desplaza) */
+.tbar{display:flex;align-items:center;gap:11px;padding:14px var(--gut) 12px;background:var(--deep);color:#fff}
+.tbar .bk{width:34px;height:34px;flex:none;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center;transition:transform .12s}
+.tbar .bk:active{transform:scale(.9)}
+.tbar .bk svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.tbar .tt{flex:1;min-width:0}
+.tbar .tt b{display:block;font-family:var(--fs);font-style:italic;font-size:24px;line-height:1.02}
+.tbar .tt span{display:block;font-size:11.5px;color:rgba(255,255,255,.72);font-weight:600;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbar .stx{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:5px 10px;border-radius:20px;background:rgba(67,217,138,.2);color:#7BF0AE;white-space:nowrap}
+/* tabs del torneo, adheridos bajo la barra global */
+.ctabswrap{position:sticky;top:calc(var(--hd) + env(safe-area-inset-top));z-index:39;background:var(--bg);padding:9px var(--gut);box-shadow:0 6px 12px -10px rgba(12,16,48,.4)}
+:root[data-theme="dark"] .ctabswrap{background:var(--bg)}
+/* transición de vista tipo app */
+@keyframes gtcvin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#app.v-enter{animation:gtcvin .24s cubic-bezier(.22,.61,.36,1)}
+@media (prefers-reduced-motion:reduce){#app.v-enter{animation:none}}
+.mc,.li,.tc{transition:transform .1s}
+.mc:active,.li:active,.tc:active{transform:scale(.985)}
+
 </style>
 </head>
 <body>
@@ -484,8 +510,15 @@ var PAL=['#2E3A86','#1E7A46','#B4472E','#7A2E86','#0E7C8B','#8B6D1E','#B4356B','
 function teamColor(id){var h=0;for(var i=0;i<id.length;i++)h=(h*31+id.charCodeAt(i))>>>0;return PAL[h%PAL.length];}
 function abrev(n){var w=String(n).replace(/\bFC\b|\bSA\b/gi,'').trim().split(/\s+/).filter(Boolean);
   if(w.length===1)return w[0].slice(0,3).toUpperCase();return (w[0][0]+w[1][0]+(w[2]?w[2][0]:'')).toUpperCase().slice(0,3);}
-function badge(eq,size){size=size||34;var c=teamColor(eq.id);
-  return '<span class="tb" style="width:'+size+'px;height:'+size+'px;background:linear-gradient(135deg,'+c+','+shade(c,-18)+');font-size:'+(size*0.34)+'px">'+esc(abrev(eq.n))+'</span>';}
+var LOGO_BASE='https://zwuieoenhwychdbzrsif.supabase.co/storage/v1/object/public/logos/';
+function slugTeam(s){s=String(s||'');try{s=s.normalize('NFD').replace(/[̀-ͯ]/g,'');}catch(e){}return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');}
+function badge(eq,size){size=size||34;var c=teamColor(eq.id);var sl=slugTeam(eq.n);var rd=Math.round(size*0.22);
+  return '<img class="tbimg" src="'+LOGO_BASE+sl+'.png" alt="" data-nm="'+esc(eq.n)+'" data-sz="'+size+'" data-c="'+c+'" loading="lazy" '+
+    'style="width:'+size+'px;height:'+size+'px;object-fit:contain;border-radius:'+rd+'px;background:#fff;box-shadow:0 1px 3px rgba(20,23,58,.12)" onerror="badgeFB(this)">';}
+function badgeFB(img){var nm=img.getAttribute('data-nm'),sz=+img.getAttribute('data-sz')||34,c=img.getAttribute('data-c')||'#2E3A86';
+  var s=document.createElement('span');s.className='tb';
+  s.style.cssText='width:'+sz+'px;height:'+sz+'px;background:linear-gradient(135deg,'+c+','+shade(c,-18)+');font-size:'+(sz*0.34)+'px';
+  s.textContent=abrev(nm);try{img.replaceWith(s);}catch(e){}}
 function shade(hex,p){var n=parseInt(hex.slice(1),16),r=(n>>16)+p,g=((n>>8)&255)+p,b=(n&255)+p;
   r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));
   return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);}
@@ -786,8 +819,16 @@ function torneoHero(t){
     '<div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:5px;font-weight:600">'+esc(t.sub)+' · '+rango+'</div>'+
     '</div></div>';
 }
+function torneoBar(t){
+  var estado = t.estado==='finalizado'
+    ? '<span class="stx" style="background:rgba(201,162,39,.22);color:#F0D98A">Finalizado</span>'
+    : '<span class="stx">● En curso</span>';
+  var rango=t.desde?(fCorta(t.desde)+' – '+fCorta(t.hasta)+' '+dObj(t.hasta).getFullYear()):'';
+  return '<div class="tbar"><button class="bk" onclick="atras()" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>'+
+    '<div class="tt"><b>'+esc(t.n)+'</b><span>'+esc(t.sub)+(rango?' · '+rango:'')+'</span></div>'+estado+'</div>';
+}
 function ctabs(t,active){
-  return '<div class="wrap" style="margin-top:14px"><div class="ctabs">'+t.tabs.map(function(tb){
+  return '<div class="ctabswrap"><div class="ctabs">'+t.tabs.map(function(tb){
     return '<button class="'+(active===tb[0]?'on':'')+'" onclick="ir(\'torneo\',{tab:\''+tb[0]+'\'},true)">'+esc(tb[1])+'</button>';}).join('')+'</div></div>';
 }
 function vTorneo(){
@@ -797,7 +838,7 @@ function vTorneo(){
     resumen:oResumen,partidos:oPartidos,tabla:oTabla,equipos:oEquipos,disciplinas:oDisciplinas,
     m_resumen:mResumen,m_partidos:mPartidos,m_tabla:mTabla,m_gol:mGol,m_equipos:mEquipos
   }[tab]||oResumen)(t);
-  return torneoHero(t)+ctabs(t,tab)+'<div class="wrap" style="margin-top:14px">'+body+'</div>'+pie();
+  return torneoBar(t)+ctabs(t,tab)+'<div class="wrap" style="margin-top:14px">'+body+'</div>'+pie();
 }
 
 /* ---- Olimpiadas: Resumen ---- */
@@ -1408,7 +1449,9 @@ var CONTEXT=['partido','equipo','disciplina','reglamento','acerca','notificacion
 function render(){
   var top=document.getElementById('top');
   top.hidden=(S.vista==='acceso');
-  document.getElementById('app').innerHTML=(VIS[S.vista]||vInicio)();
+  var app=document.getElementById('app');
+  app.innerHTML=(VIS[S.vista]||vInicio)();
+  app.classList.remove('v-enter'); void app.offsetWidth; app.classList.add('v-enter');
   var old=document.getElementById('consent'); if(old) old.remove();
   var bc=bannerConsent();
   if(bc){ document.body.insertAdjacentHTML('beforeend', bc); }
