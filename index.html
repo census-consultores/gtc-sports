@@ -729,13 +729,14 @@ function empty(txt,sub){return '<div class="empty">'+sv(IC.calendario)+'<b>'+esc
 
 /* ================= INICIO ================= */
 function vInicio(){
-  var hoy=hoyISO(),P=allPartidos().map(liveState);
+  var hoy=hoyISO();
+  var s=gtcAuth.cargar(); var canSee=gtcAuth.esAdmin()||!!s;
+  var P=allPartidos().map(liveState).filter(function(p){return canSee||(TOR[p.tor]&&TOR[p.tor].estado==='finalizado');});
   var live=P.filter(function(p){return p.estado==='live';});
   var deHoy=P.filter(function(p){return p.f===hoy;}).sort(function(a,b){return(a.h||'').localeCompare(b.h||'');});
   var prox=P.filter(function(p){return p.estado==='pre'&&(p.f>hoy||(p.f===hoy));}).sort(function(a,b){return(a.f+a.h).localeCompare(b.f+b.h);});
   var recientes=P.filter(function(p){return p.gl!=null&&p.gv!=null&&TOR[p.tor]&&TOR[p.tor].estado!=='finalizado';}).sort(function(a,b){return(b.f+b.h).localeCompare(a.f+a.h);}).slice(0,4);
   var prX=prox[0];
-  var s=gtcAuth.cargar();
   var h='';
   h+='<div class="hero"><img src="'+HERO+'" alt="Guayaquil Tenis Club"><div class="hz">'+
      '<div class="ht">Vive<br>el deporte</div><div class="hk">En tu club</div></div></div>';
@@ -750,17 +751,19 @@ function vInicio(){
     h+=secHead('Tus próximos partidos',['Tu equipo',"ir('equipo',{id:'"+s.equipo+"'})"]);
     h+= miosProx.length? miosProx.map(matchCard).join('') : '<div class="card"><div style="padding:16px">'+empty('Sin partidos próximos','Cuando la Comisión programe los partidos de tu equipo, aparecerán aquí.')+'</div></div>';
     if(miosRec.length){ h+=secHead('Tus últimos resultados'); h+=miosRec.map(matchCard).join(''); }
-  } else if(prX){ h+=secHead('Tu próximo partido'); h+=matchCard(prX); }
-  /* en vivo */
-  if(live.length){ h+=secHead('En vivo ahora',['Ver todos',"goGlobal('calendario')"]);
-    h+=live.slice(0,3).map(matchCard).join(''); }
-  /* hoy en el club */
-  h+=secHead('Hoy en GTC',['Ver calendario',"goGlobal('calendario')"]);
-  if(deHoy.length){ h+=deHoy.slice(0,4).map(function(p){return p.gen?eventRow(p):matchCard(p);}).join(''); }
-  else h+='<div class="card"><div style="padding:16px">'+empty('No hay partidos hoy','Revisa el calendario para los próximos días.')+'</div></div>';
-  /* resultados recientes */
-  if(recientes.length){ h+=secHead('Resultados recientes',['Ver todos',"goGlobal('calendario')"]);
-    h+=recientes.map(matchCard).join(''); }
+  } else if(canSee && prX){ h+=secHead('Tu próximo partido'); h+=matchCard(prX); }
+  if(canSee){
+    /* en vivo */
+    if(live.length){ h+=secHead('En vivo ahora',['Ver todos',"goGlobal('calendario')"]);
+      h+=live.slice(0,3).map(matchCard).join(''); }
+    /* hoy en el club */
+    h+=secHead('Hoy en GTC',['Ver calendario',"goGlobal('calendario')"]);
+    if(deHoy.length){ h+=deHoy.slice(0,4).map(function(p){return p.gen?eventRow(p):matchCard(p);}).join(''); }
+    else h+='<div class="card"><div style="padding:16px">'+empty('No hay partidos hoy','Revisa el calendario para los próximos días.')+'</div></div>';
+    /* resultados recientes */
+    if(recientes.length){ h+=secHead('Resultados recientes',['Ver todos',"goGlobal('calendario')"]);
+      h+=recientes.map(matchCard).join(''); }
+  }
   /* torneos activos */
   h+=secHead('Torneos',['Ver todos',"goGlobal('torneos')"]);
   h+=torPorEstado('curso').map(torCardMini).join('');
@@ -1129,9 +1132,11 @@ function vDisciplina(){
 }
 
 /* ================= CALENDARIO GLOBAL ================= */
+function canVerCurso(){return gtcAuth.esAdmin()||!!gtcAuth.cargar();}
+function visP(arr){return canVerCurso()?arr:arr.filter(function(p){return TOR[p.tor]&&TOR[p.tor].estado==='finalizado';});}
 function vCalendario(){
   var scope=S.params.sc||'todos';
-  var P=allPartidos().map(liveState);
+  var P=visP(allPartidos().map(liveState));
   var hoy=hoyISO();
   var fechas=[]; var seen={};
   P.forEach(function(p){if(!seen[p.f]){seen[p.f]=1;fechas.push(p.f);}}); fechas.sort();
@@ -1156,7 +1161,7 @@ function vCalendario(){
 
 /* ================= RANKING (hub) ================= */
 function vNovedades(){
-  var hoy=hoyISO(), P=allPartidos().map(liveState);
+  var hoy=hoyISO(), P=visP(allPartidos().map(liveState));
   var recientes=P.filter(function(p){return p.gl!=null&&p.gv!=null&&TOR[p.tor]&&TOR[p.tor].estado!=='finalizado';}).sort(function(a,b){return(b.f+b.h).localeCompare(a.f+a.h);}).slice(0,8);
   var prox=P.filter(function(p){return p.estado==='pre'&&p.f>=hoy;}).sort(function(a,b){return(a.f+a.h).localeCompare(b.f+b.h);}).slice(0,6);
   var fin=torPorEstado('finalizado');
