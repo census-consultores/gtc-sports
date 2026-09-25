@@ -69,6 +69,27 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, token: makeToken(u.correo, u.rol), nombre: u.nombre, rol: u.rol, correo: u.correo });
     }
 
+    // ---- REGISTRAR CUENTA (público, autovalidado con socio+cédula reales) ----
+    if (accion === 'registrar_cuenta') {
+      const cedula = String(body.cedula || '').replace(/\D/g, '');
+      if (cedula.length !== 10) return res.status(200).json({ ok: false, msg: 'cedula' });
+      const js = await sb('jugadores?select=nombre,equipo_id,socio&cedula=eq.' + encodeURIComponent(cedula) + '&limit=1');
+      if (!js || !js.length) return res.status(200).json({ ok: false, msg: 'no-match' });
+      const now = new Date().toISOString();
+      const row = {
+        cedula, socio: body.socio || js[0].socio || null, nombre: body.nombre || js[0].nombre,
+        equipo_id: body.equipo_id || js[0].equipo_id || null, cat: body.cat || null,
+        plataforma: body.plataforma || null, last_login: now
+      };
+      if (body.correo) row.correo = String(body.correo).trim();
+      if (body.whatsapp) row.whatsapp = String(body.whatsapp).replace(/[^\d+]/g, '');
+      if (body.consent) { row.consent = true; row.consent_fecha = now; }
+      try {
+        await sb('cuentas?on_conflict=cedula', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: JSON.stringify(row) });
+      } catch (e) { return res.status(200).json({ ok: false }); }
+      return res.status(200).json({ ok: true });
+    }
+
     // resto de acciones requieren token
     const sess = readToken(body.token);
     if (!sess) return res.status(401).json({ ok: false, msg: 'Sesión expirada. Vuelve a entrar.' });
@@ -122,6 +143,13 @@ export default async function handler(req, res) {
       async function worker() { while (q.length) { const c = q.shift(); const [k, v] = await one(c); out[k] = v; } }
       await Promise.all(Array.from({ length: 8 }, worker));
       return res.status(200).json({ ok: true, names: out });
+    }
+
+    // ---- CUENTAS / CONTACTOS (lectura, solo superadmin por ser datos personales) ----
+    if (accion === 'cuentas_list') {
+      if (sess.r !== 'superadmin') return res.status(403).json({ ok: false, msg: 'Solo el superadministrador puede ver los contactos.' });
+      const rows = await sb('cuentas?select=nombre,socio,equipo_id,cat,correo,whatsapp,consent,plataforma,created_at,last_login&order=last_login.desc&limit=3000');
+      return res.status(200).json({ ok: true, cuentas: rows || [] });
     }
 
     // ---- escrituras ----
