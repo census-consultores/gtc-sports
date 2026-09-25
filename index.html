@@ -53,13 +53,14 @@ img{display:block;max-width:100%}
   background:radial-gradient(130% 100% at 50% 8%,#2A3170,#151A46 45%,#0A0D26 100%);
   transition:opacity .34s ease, visibility .34s}
 #splash.off{opacity:0;visibility:hidden}
-.sp{text-align:center;color:#fff;animation:spr .5s cubic-bezier(.2,.8,.2,1) both;transition:opacity .16s ease}
-#splash.off .sp{opacity:0}
+.sp{text-align:center;color:#fff;opacity:0}
+#splash.rdy .sp{animation:spr .5s cubic-bezier(.2,.8,.2,1) both}
 .sp .esc{width:104px;margin:0 auto 20px;filter:drop-shadow(0 10px 26px rgba(0,0,0,.5))}
 .sp .wm{font-family:var(--fa);font-weight:900;font-size:36px;letter-spacing:-.03em;line-height:1}
 .sp .wm span{color:var(--gold)}
 .sp .tg{font-family:var(--fs);font-style:italic;font-size:16px;color:rgba(255,255,255,.72);margin-top:8px}
-.sp .foot{margin-top:44px;animation:spr .5s .3s both}
+.sp .foot{margin-top:44px;opacity:0}
+#splash.rdy .foot{animation:spr .5s .3s both}
 .sp .dv{width:88px;height:1px;margin:0 auto 16px;background:linear-gradient(90deg,transparent,rgba(201,162,39,.8),transparent)}
 .sp .k{font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:#8ea4bb;margin-bottom:13px}
 .sp .foot img{height:62px;filter:drop-shadow(0 3px 10px rgba(0,0,0,.5))}
@@ -1716,8 +1717,27 @@ document.getElementById('btBell').onclick=function(){ir('notificaciones',{})};
 try{var tm=localStorage.getItem('gtc_tema');if(tm)document.documentElement.setAttribute('data-theme',tm);}catch(e){}
 gtcAuth.cargar();
 render();
-setTimeout(function(){var s=document.getElementById('splash');if(s)s.classList.add('off');},2100);
-setTimeout(function(){var s=document.getElementById('splash');if(s)s.remove();},2500);
+(function(){
+  var sp=document.getElementById('splash'); if(!sp) return;
+  var revealed=false;
+  function reveal(){
+    if(revealed) return; revealed=true;
+    sp.classList.add('rdy');                                   // muestra el logo YA con la fuente final
+    setTimeout(function(){ if(sp) sp.classList.add('off'); }, 1500);
+    setTimeout(function(){ if(sp) sp.remove(); }, 1900);
+  }
+  // Revela cuando las tipografías del splash estén cargadas (sin salto de fuente)
+  try{
+    if(document.fonts && document.fonts.load){
+      Promise.all([
+        document.fonts.load('900 36px Archivo'),
+        document.fonts.load('italic 16px "Instrument Serif"')
+      ]).then(function(){ return document.fonts.ready; }).then(reveal).catch(reveal);
+    }
+  }catch(e){}
+  // Fallbacks: nunca dejar el splash colgado si las fuentes tardan o la API falta
+  setTimeout(reveal, 1600);
+})();
 </script>
 
 <script>
