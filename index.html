@@ -1191,8 +1191,7 @@ function vMas(){
   h+=secHead('Competición');
   h+='<div class="row-list">'+
     liNav('doc','Reglamento general','Documento oficial 2026',"ir('reglamento',{})")+
-    liNav('grid','Categorías','Las 10 categorías del torneo',"S.torneo='olimpiadas2026';ir('torneo',{tab:'tabla'})")+
-    liNav('torneos','Torneos','Todas las competencias',"goGlobal('torneos')")+'</div>';
+    liNav('grid','Categorías','Las 10 categorías del torneo',"S.torneo='olimpiadas2026';ir('torneo',{tab:'tabla'})")+'</div>';
   h+=secHead('Aplicación');
   h+='<div class="row-list">'+
     liNav('bell','Notificaciones','Correo y WhatsApp de tus partidos',"ir('notificaciones',{})")+
@@ -1202,7 +1201,6 @@ function vMas(){
     h+=secHead('Administración');
     h+='<div class="row-list">'+
       (gtcAuth.puedeEditar()?liNav('tabla','Panel de Deportes','Registrar resultados, goles, amarillas y jugadores',"ir('deportes',{})"):'')+
-      liNav('grid','Panel: todos los torneos','Ves todos los torneos y nóminas','goGlobal(\'torneos\')')+
       liNav('bell','Analítica de uso','Quién ingresa, qué visitan e instalaciones',"ir('analitica',{})")+
       (gtcAuth.esSuper()?liNav('correo','Contactos de socios','Correos y WhatsApp para comunicaciones',"ir('contactos',{})"):'')+
       (gtcAuth.esSuper()?liNav('info','Usuarios y roles','Base de datos de accesos del equipo',"ir('admin',{})"):'')+
