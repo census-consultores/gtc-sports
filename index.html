@@ -145,10 +145,12 @@ h2.sec .lnk .i{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width
 :root[data-theme="dark"] .seg button.on{background:var(--royal);color:#fff}
 
 /* ---------- Chips ---------- */
-.chips{display:flex;gap:7px;flex-wrap:wrap;padding-bottom:3px}
+.chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-bottom:3px}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex:none;padding:8px 13px;border-radius:20px;font-size:12.5px;font-weight:600;background:var(--card);
-  border:1px solid var(--line);color:var(--muted);transition:.15s;display:flex;align-items:center;gap:6px}
+.chip{padding:9px 8px;border-radius:12px;font-size:12px;font-weight:600;background:var(--card);
+  border:1px solid var(--line);color:var(--muted);transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.chip.wide{grid-column:1/-1}
+.chip .dt{flex:none}
 .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 .chip .dt{width:8px;height:8px;border-radius:3px}
 .chipf{flex:none;padding:8px 12px;border-radius:11px;font-size:12.5px;font-weight:600;background:var(--card);
@@ -899,10 +901,10 @@ function listaPartidos(P,ns){
   var cats={}; P.forEach(function(p){if(p.cat)cats[p.cat]=1;});
   var fil=P.filter(function(p){return(!fd||p.disc===fd)&&(!fc||p.cat===fc);});
   fil.sort(function(a,b){return(a.f+a.h).localeCompare(b.f+b.h);});
-  var h='<div class="chips" style="margin-bottom:8px"><button class="chip'+(!fd?' on':'')+'" onclick="setF(\'fd\',\'\')">Todos los deportes</button>'+
+  var h='<div class="chips" style="margin-bottom:8px"><button class="chip wide'+(!fd?' on':'')+'" onclick="setF(\'fd\',\'\')">Todos los deportes</button>'+
     Object.keys(discs).map(function(d){return '<button class="chip'+(fd===d?' on':'')+'" onclick="setF(\'fd\',\''+d+'\')"><span class="dt" style="background:'+discColor(d)+'"></span>'+esc(DIS[d]?DIS[d].n:d)+'</button>';}).join('')+'</div>';
   if(Object.keys(cats).length>1){
-    h+='<div class="chips" style="margin-bottom:12px"><button class="chip'+(!fc?' on':'')+'" onclick="setF(\'fc\',\'\')">Todas las categorías</button>'+
+    h+='<div class="chips" style="margin-bottom:12px"><button class="chip wide'+(!fc?' on':'')+'" onclick="setF(\'fc\',\'\')">Todas las categorías</button>'+
     DATA.categorias.filter(function(c){return cats[c.id];}).map(function(c){return '<button class="chip'+(fc===c.id?' on':'')+'" onclick="setF(\'fc\',\''+c.id+'\')">'+esc(c.n)+'</button>';}).join('')+'</div>';
   }
   /* agrupar por fecha */
@@ -936,7 +938,7 @@ function oTabla(t){
 /* ---- Olimpiadas: Equipos ---- */
 function oEquipos(t){
   var fc=S.params.cat||'';
-  var h='<div class="chips" style="margin-bottom:12px"><button class="chip'+(!fc?' on':'')+'" onclick="ir(\'torneo\',{tab:\'equipos\',cat:\'\'},true)">Todas</button>'+
+  var h='<div class="chips" style="margin-bottom:12px"><button class="chip wide'+(!fc?' on':'')+'" onclick="ir(\'torneo\',{tab:\'equipos\',cat:\'\'},true)">Todas</button>'+
     DATA.categorias.map(function(c){return '<button class="chip'+(fc===c.id?' on':'')+'" onclick="ir(\'torneo\',{tab:\'equipos\',cat:\''+c.id+'\'},true)">'+esc(c.n)+'</button>';}).join('')+'</div>';
   var eqs=DATA.equipos.filter(function(e){return!fc||e.cat===fc;});
   var grp={},ord=[];
@@ -1631,10 +1633,10 @@ function depResultados(){
   var h='<div class="chips" style="margin-bottom:8px"><button class="chip'+(!fs?' on':'')+'" onclick="setF(\'fstate\',\'\')">Todos</button>'+
     '<button class="chip'+(fs==='pend'?' on':'')+'" onclick="setF(\'fstate\',\'pend\')">Por registrar</button>'+
     '<button class="chip'+(fs==='hecho'?' on':'')+'" onclick="setF(\'fstate\',\'hecho\')">Con marcador</button></div>';
-  h+='<div class="chips" style="margin-bottom:8px"><button class="chip'+(!fd?' on':'')+'" onclick="setF(\'fd\',\'\')">Todo deporte</button>'+
+  h+='<div class="chips" style="margin-bottom:8px"><button class="chip wide'+(!fd?' on':'')+'" onclick="setF(\'fd\',\'\')">Todo deporte</button>'+
     Object.keys(discs).map(function(d){return '<button class="chip'+(fd===d?' on':'')+'" onclick="setF(\'fd\',\''+d+'\')">'+esc(DIS[d]?DIS[d].n:d)+'</button>';}).join('')+'</div>';
   if(Object.keys(cats).length>1){
-    h+='<div class="chips" style="margin-bottom:10px"><button class="chip'+(!fc?' on':'')+'" onclick="setF(\'fc\',\'\')">Toda categoría</button>'+
+    h+='<div class="chips" style="margin-bottom:10px"><button class="chip wide'+(!fc?' on':'')+'" onclick="setF(\'fc\',\'\')">Toda categoría</button>'+
       DATA.categorias.filter(function(c){return cats[c.id];}).map(function(c){return '<button class="chip'+(fc===c.id?' on':'')+'" onclick="setF(\'fc\',\''+c.id+'\')">'+esc(c.n)+'</button>';}).join('')+'</div>';
   }
   h+='<div class="nota" style="margin:2px 0 12px">'+fil.length+' partidos. Toca uno para registrar o corregir el marcador.</div>';
@@ -1724,7 +1726,7 @@ function guardarPartidoEdit(){
 /* ---- gestión de jugadores ---- */
 function depJugadores(){
   var cat=S.params.jcat||'',eq=S.params.jeq||'';
-  var h='<div class="chips" style="margin-bottom:8px"><button class="chip'+(!cat?' on':'')+'" onclick="ir(\'deportes\',{seg:\'jug\',jcat:\'\'},true)">Todas</button>'+
+  var h='<div class="chips" style="margin-bottom:8px"><button class="chip wide'+(!cat?' on':'')+'" onclick="ir(\'deportes\',{seg:\'jug\',jcat:\'\'},true)">Todas</button>'+
     DATA.categorias.map(function(c){var n=DATA.equipos.filter(function(e){return e.cat===c.id;}).length;if(!n)return '';return '<button class="chip'+(cat===c.id?' on':'')+'" onclick="ir(\'deportes\',{seg:\'jug\',jcat:\''+c.id+'\'},true)">'+esc(c.n)+'</button>';}).join('')+'</div>';
   if(!eq){
     var eqs=DATA.equipos.filter(function(e){return !cat||e.cat===cat;}).sort(function(a,b){return (a.cat+a.n).localeCompare(b.cat+b.n);});
