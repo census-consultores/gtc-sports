@@ -84,6 +84,13 @@ export default async function handler(req, res) {
       if (body.correo) row.correo = String(body.correo).trim();
       if (body.whatsapp) row.whatsapp = String(body.whatsapp).replace(/[^\d+]/g, '');
       if (body.consent) { row.consent = true; row.consent_fecha = now; }
+      if (body.nombres) row.nombres = String(body.nombres).trim();
+      if (body.fecha_nacimiento) row.fecha_nacimiento = String(body.fecha_nacimiento).slice(0, 10);
+      if (body.auth_provider) row.auth_provider = String(body.auth_provider).slice(0, 20);
+      if (body.auth_email) row.auth_email = String(body.auth_email).trim().toLowerCase();
+      if (body.auth_uid) row.auth_uid = String(body.auth_uid).slice(0, 128);
+      if (Array.isArray(body.deportes)) row.deportes = body.deportes;
+      if (body.perfil_completo) row.perfil_completo = true;
       try {
         await sb('cuentas?on_conflict=cedula', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: JSON.stringify(row) });
       } catch (e) { return res.status(200).json({ ok: false }); }
