@@ -505,7 +505,8 @@ var DIC={
  basquet:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17M3.5 10.4h17M6 5.6c3.2 2.8 3.2 9.8 0 12.8M18 5.6c-3.2 2.8-3.2 9.8 0 12.8"/>',
  beachvolley:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5c-3.2 3.2-4 10.8-1.3 16.8M20.5 12c-4.4-1.3-11 .4-14.8 5.1M4 9C8 10.5 14.6 9.4 18.8 5"/>',
  cuarenta:'<rect x="3.4" y="6.4" width="9" height="13" rx="1.8" transform="rotate(-10 8 13)"/><rect x="11" y="4.4" width="9" height="13" rx="1.8" transform="rotate(10 15.5 11)"/>',
- carrera:'<circle cx="12" cy="13.4" r="7"/><path d="M12 9.6v4l2.4 1.6M9.6 2.8h4.8M12 2.8v2.4"/>'
+ carrera:'<circle cx="12" cy="13.4" r="7"/><path d="M12 9.6v4l2.4 1.6M9.6 2.8h4.8M12 2.8v2.4"/>',
+ pingpong:'<circle cx="9.6" cy="8.4" r="5.2"/><path d="M13 12.4l4.6 5a1.9 1.9 0 0 1-2.7 2.7l-4.6-5"/><circle cx="18.4" cy="6.2" r="1.3"/>'
 };
 function discIcon(id){return DIC[id]||IC.torneos;}
 function discColor(id){return (DIS[id]&&DIS[id].c)||'#2E3A86';}
@@ -1995,7 +1996,16 @@ NAVMAP.deportes='mas';NAVMAP.depmatch='mas';NAVMAP.analitica='mas';NAVMAP.instal
 (function(){var _render=render;window.render=function(){_render();try{bannerInstalar();}catch(e){}};})();
 
 /* ---- service worker ---- */
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }
+if('serviceWorker' in navigator){
+  var _hadCtrl=!!navigator.serviceWorker.controller, _reloaded=false;
+  navigator.serviceWorker.register('/sw.js').then(function(reg){
+    try{ reg.update(); }catch(e){}
+    setInterval(function(){ try{ reg.update(); }catch(e){} }, 30*60*1000);
+  }).catch(function(){});
+  navigator.serviceWorker.addEventListener('controllerchange',function(){
+    if(_reloaded||!_hadCtrl) return; _reloaded=true; location.reload();
+  });
+}
 
 /* ---- BOOT oficial ---- */
 try{track('sesion',{});track('vista',{vista:S.vista});}catch(e){}
