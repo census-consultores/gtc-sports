@@ -422,6 +422,8 @@ function dObj(iso){var p=(iso||'').split('-');return new Date(+p[0],+p[1]-1,+p[2
 function fLarga(iso){var d=dObj(iso);return DIAS[d.getDay()].replace(/^./,function(c){return c.toUpperCase();})+' '+d.getDate()+' de '+MESES[d.getMonth()];}
 function fCorta(iso){var d=dObj(iso);return d.getDate()+' '+MESES[d.getMonth()].slice(0,3);}
 function cedulaNorm(c){c=String(c||'').replace(/\D/g,'');if(c.length===9)c='0'+c;return c;}
+/* código de socio: se ignora el sufijo de miembro -01/-02 (hijos) y se toma el número de familia */
+function socioNorm(x){x=String(x==null?'':x);var m=x.match(/(\d{2,6})-\d{1,2}(?!\d)/);if(m)return m[1];var runs=x.match(/\d+/g);if(!runs)return '';return runs.reduce(function(a,b){return b.length>a.length?b:a;});}
 /* reloj de referencia: hoy real; si cae fuera del torneo, usa una hora demo con actividad */
 function nowRef(){
   var n=new Date();
@@ -590,7 +592,7 @@ var gtcAuth = {
   guardar:function(s){this.sesion=s;if(s&&s.token)this.token=s.token;try{localStorage.setItem('gtc_sesion',JSON.stringify(s));}catch(e){}},
   salir:function(){this.sesion=null;this.token=null;try{localStorage.removeItem('gtc_sesion');}catch(e){}S.hist=[];ir('inicio',{},true);},
   /* login de socio real: código de socio + cédula (10 díg.) contra la tabla jugadores */
-  buscar:function(socio,cedula){var s=String(socio||'').replace(/\D/g,''),c=cedulaNorm(cedula);
+  buscar:function(socio,cedula){var s=socioNorm(socio),c=cedulaNorm(cedula);
     if(!s)return Promise.resolve({ok:false,campo:'socio',msg:'Escribe tu código de socio.'});
     if(c.length!==10)return Promise.resolve({ok:false,campo:'cedula',msg:'La cédula debe tener 10 dígitos.'});
     return sbGet('jugadores?select=id,nombre,num,socio,cedula,invitado,equipo_id&socio=eq.'+encodeURIComponent(s)+'&cedula=eq.'+encodeURIComponent(c)+'&activo=eq.true')
@@ -1229,7 +1231,8 @@ function vAcceso(){
 function accSocio(){
   return '<h1>Ingresa a<br>GTC Sports</h1>'+
     '<p class="sub">Inicia sesión con tu <b>código de socio</b> y tu <b>cédula</b> para ver tus torneos y recibir los avisos de tus partidos.</p>'+
-    '<div class="field"><label>Código de socio</label><input id="sSocio" inputmode="numeric" maxlength="12" placeholder="Ej. 11933" oninput="limpiaErrS()" onkeydown="if(event.key===\'Enter\')socioLoginSubmit()"></div>'+
+    '<div class="field"><label>Código de socio</label><input id="sSocio" inputmode="numeric" maxlength="12" placeholder="Ej. 11933" oninput="limpiaErrS()" onkeydown="if(event.key===\'Enter\')socioLoginSubmit()">'+
+      '<div style="font-size:11px;color:var(--muted-2);margin-top:5px;line-height:1.5">Escribe solo el número de socio, <b>sin el «-01», «-02»</b> del final (ese sufijo es de los hijos). Ej.: si tu carnet dice <b>010343-02</b>, ingresa <b>010343</b>.</div></div>'+
     '<div class="field"><label>Cédula (10 dígitos)</label><input id="sCedula" inputmode="numeric" maxlength="10" placeholder="Tu número de cédula" oninput="limpiaErrS()" onkeydown="if(event.key===\'Enter\')socioLoginSubmit()"></div>'+
     '<div class="chkrow" id="chkS" onclick="toggleConsent()"><span class="box"><svg viewBox="0 0 24 24"><path d="M4 12l6 6L20 6"/></svg></span>'+
       '<span class="t">Autorizo al Club a usar mis datos y mi actividad en la app para comunicaciones y <b>campañas deportivas</b>. '+
