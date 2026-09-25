@@ -1603,7 +1603,7 @@ function accAdmin(){
     '<div class="field"><label>Clave</label><input id="aClave" type="password" autocomplete="current-password" placeholder="Tu clave de acceso" oninput="limpiaErrA()" onkeydown="if(event.key===\'Enter\')loginAdminSubmit()"></div>'+
     '<div id="errA"></div>'+
     '<button class="btn" id="btA" style="margin-top:14px" onclick="loginAdminSubmit()">Entrar</button>'+
-    '<button class="btn ghost" onclick="ir(\'acceso\',{},true)">Volver</button>';
+    (esComputadora()?'':'<button class="btn ghost" onclick="ir(\'acceso\',{},true)">Volver</button>');
 }
 function limpiaErrA(){var e=document.getElementById('errA');if(e)e.innerHTML='';}
 function loginAdminSubmit(){
@@ -1725,6 +1725,12 @@ var VIS={inicio:vInicio,torneos:vTorneos,torneo:vTorneo,calendario:vCalendario,n
   partido:vPartido,equipo:vEquipo,disciplina:vDisciplina,reglamento:vReglamento,acerca:vAcerca,acceso:vAcceso,contacto:vContacto,notificaciones:vNotificaciones,terminos:vTerminos,admin:vAdmin,hist2025:vHist2025};
 var CONTEXT=['partido','equipo','disciplina','reglamento','acerca','notificaciones','terminos','admin','hist2025'];
 function render(){
+  /* En computadora, toda la app queda detrás del login de administración (Directiva/Comisión).
+     Sin sesión de admin no se ve ni navega nada más que la pantalla de acceso. */
+  if(esComputadora() && !gtcAuth.esAdmin()){
+    if(S.vista!=='acceso'){ S.vista='acceso'; S.hist=[]; }
+    if(S.params.paso!=='admin'){ S.params={paso:'admin'}; }
+  }
   var top=document.getElementById('top');
   top.hidden=(S.vista==='acceso'||S.vista==='contacto');
   var app=document.getElementById('app');
