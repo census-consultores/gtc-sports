@@ -468,6 +468,7 @@ function fechaChip(iso){if(!iso)return '';if(iso===hoyISO())return 'Hoy';var d=d
 
 /* ---------- iconos ---------- */
 function sv(d){return '<svg class="i" viewBox="0 0 24 24">'+d+'</svg>';}
+function svd(id){return '<svg class="i" viewBox="0 0 24 24" style="fill:#fff;stroke:none">'+(DIC[id]||'<circle cx="12" cy="12" r="7"/>')+'</svg>';}
 var IC={
  inicio:'<path d="M3.5 10.5 12 4l8.5 6.5V20a1 1 0 0 1-1 1h-5v-6h-5v6h-5a1 1 0 0 1-1-1z"/>',
  torneos:'<path d="M7 4h10v3a5 5 0 0 1-10 0z"/><path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3"/><path d="M12 12v4M9 20h6M10 20l.4-4M14 20l-.4-4"/>',
@@ -496,17 +497,17 @@ var IC={
 };
 /* disciplinas (familia propia, mismo grosor) */
 var DIC={
- futbol:'<circle cx="12" cy="12" r="8.5"/><path d="M12 8l3.2 2.3-1.2 3.7h-4L8.8 10.3z"/>',
- tenis:'<circle cx="12" cy="12" r="8.5"/><path d="M5.6 5.6c2.4 2.2 3.1 8-.0 12.8M18.4 5.6c-2.4 2.2-3.1 8 0 12.8"/>',
- natacion:'<circle cx="16.5" cy="7" r="1.7"/><path d="M3 14c1.4 0 1.4 1.2 2.8 1.2S7.2 14 8.6 14s1.4 1.2 2.8 1.2S12.8 14 14.2 14s1.4 1.2 2.8 1.2S18.4 14 19.8 14"/><path d="M3 18.4c1.4 0 1.4 1.2 2.8 1.2s1.4-1.2 2.8-1.2 1.4 1.2 2.8 1.2 1.4-1.2 2.8-1.2 1.4 1.2 2.8 1.2 1.4-1.2 2.8-1.2"/><path d="M6.6 12.6l4-3.2 3.2 2"/>',
- padel:'<rect x="6" y="2.6" width="11" height="12.5" rx="5.2"/><circle cx="9.4" cy="7" r=".8"/><circle cx="13.6" cy="7" r=".8"/><circle cx="11.5" cy="10.4" r=".8"/><path d="M11.5 15v6"/>',
- pickleball:'<path d="M7 3.6h8a2.8 2.8 0 0 1 2.8 2.8v5A6.8 6.8 0 0 1 4.2 11.4V6.4A2.8 2.8 0 0 1 7 3.6z"/><circle cx="9" cy="7.4" r=".8"/><circle cx="12.6" cy="7.4" r=".8"/><circle cx="9" cy="11" r=".8"/><circle cx="12.6" cy="11" r=".8"/><path d="M11 18v3.4"/>',
- beachtenis:'<ellipse cx="10.6" cy="8.6" rx="5" ry="5.8"/><path d="M10.6 14.4v2.2"/><path d="M3.4 20.4c1.5 0 1.5 1.1 3 1.1s1.5-1.1 3-1.1 1.5 1.1 3 1.1 1.5-1.1 3-1.1 1.5 1.1 3 1.1"/><path d="M17 9.2a3.7 3.7 0 1 1 3.4 3.2"/>',
- basquet:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17M3.5 10.4h17M6 5.6c3.2 2.8 3.2 9.8 0 12.8M18 5.6c-3.2 2.8-3.2 9.8 0 12.8"/>',
- beachvolley:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5c-3.2 3.2-4 10.8-1.3 16.8M20.5 12c-4.4-1.3-11 .4-14.8 5.1M4 9C8 10.5 14.6 9.4 18.8 5"/>',
- cuarenta:'<rect x="3.4" y="6.4" width="9" height="13" rx="1.8" transform="rotate(-10 8 13)"/><rect x="11" y="4.4" width="9" height="13" rx="1.8" transform="rotate(10 15.5 11)"/>',
- carrera:'<circle cx="12" cy="13.4" r="7"/><path d="M12 9.6v4l2.4 1.6M9.6 2.8h4.8M12 2.8v2.4"/>',
- pingpong:'<circle cx="9.6" cy="8.4" r="5.2"/><path d="M13 12.4l4.6 5a1.9 1.9 0 0 1-2.7 2.7l-4.6-5"/><circle cx="18.4" cy="6.2" r="1.3"/>'
+ futbol:'<path fill-rule="evenodd" d="M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zm0 4.3l3.15 2.29-1.2 3.7h-3.9L8.85 9.39 12 7.1z"/>',
+ tenis:'<path fill-rule="evenodd" d="M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zM6.2 6.0a7.4 7.4 0 000 12 6.2 6.2 0 010-12zm11.6 0a6.2 6.2 0 010 12 7.4 7.4 0 000-12z"/>',
+ natacion:'<path d="M17.4 5.1a2 2 0 11-2 2 2 2 0 012-2zM3 13.2c1.6 0 1.7 1.35 3.1 1.35S7.6 13.2 9.2 13.2s1.7 1.35 3.1 1.35 1.55-1.35 3.15-1.35 1.7 1.35 3.1 1.35v2c-1.6 0-1.75-1.35-3.1-1.35s-1.55 1.35-3.15 1.35-1.7-1.35-3.1-1.35-1.55 1.35-3.1 1.35-1.75-1.35-3.1-1.35zM6.2 11.5l4.6-3.7 2.9 1.9-2.2 2.4c-.7-.35-1.5-.35-2.2 0z"/>',
+ carrera:'<path d="M12 4.2A7.8 7.8 0 1019.8 12 7.8 7.8 0 0012 4.2zm.9 3.1a.9.9 0 00-1.8 0v4.3l3 2.05a.9.9 0 001.02-1.48L12.9 10.8z"/><path d="M9.4 2.2h5.2a.95.95 0 010 1.9H9.4a.95.95 0 010-1.9z"/>',
+ pingpong:'<path d="M13.4 3.1c-2.6-1-5.6-.3-7.5 1.6-2.2 2.2-2.7 5.4-1.4 8.1l-1.2 1.2a1.3 1.3 0 001.8 1.8l1.2-1.2c.5.25 1 .43 1.55.54l4.3-4.3a2 2 0 00-.02-.04l4.25-4.25c-.65-1.5-1.8-2.75-3.31-3.45zM17.6 8.2l-6.05 6.05 3.5 3.5a2.35 2.35 0 003.32-3.32l-1.4-1.4 1.4-1.4a2 2 0 000-2.83z"/><circle cx="18.4" cy="6.0" r="1.5"/>',
+ beachtenis:'<path d="M10.6 2.5c-3.5 0-6.3 3.1-6.3 6.9 0 3.5 2.4 6.4 5.5 6.85l-.02 3.15a1.1 1.1 0 002.2 0V16.25c3.06-.5 5.45-3.35 5.45-6.85 0-3.8-2.8-6.9-6.28-6.9z"/><circle cx="18.8" cy="16" r="2.1"/>',
+ padel:'<path fill-rule="evenodd" d="M12 2.5c-3.6 0-6.5 2.9-6.5 6.4 0 3.1 2.2 5.7 5.1 6.3V18H9a1 1 0 000 2h6a1 1 0 000-2h-1.6v-2.8c2.9-.6 5.1-3.2 5.1-6.3 0-3.5-2.9-6.4-6.5-6.4zM9.3 6.2a1 1 0 110 2 1 1 0 010-2zm2.7 0a1 1 0 110 2 1 1 0 010-2zm2.7 0a1 1 0 110 2 1 1 0 010-2zM9.3 9.5a1 1 0 110 2 1 1 0 010-2zm2.7 0a1 1 0 110 2 1 1 0 010-2zm2.7 0a1 1 0 110 2 1 1 0 010-2z"/>',
+ beachvolley:'<path fill-rule="evenodd" d="M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zm0 2a7.2 7.2 0 016.9 5.15c-2.6-.5-5.2-.1-7.6 1.15V4.85A7.4 7.4 0 0112 4.8zM9.3 5.35v7.2c-1.7 1.4-3 3.25-3.75 5.35A7.2 7.2 0 019.3 5.35zM12 19.2c-.55 0-1.08-.06-1.6-.17.55-2.6 2-4.85 4.15-6.35 1.5-.5 3.05-.6 4.55-.3A7.2 7.2 0 0112 19.2z"/>',
+ cuarenta:'<path d="M9.8 4.1L4.6 6.0a1.6 1.6 0 00-.95 2.05l3.15 8.65a1.6 1.6 0 002.05.95l.6-.22-2.4-6.6a2.6 2.6 0 011.55-3.33l3.05-1.1-.9-2.0a1.6 1.6 0 00-2.05-.95z"/><path d="M11.2 7.6l5.2-.5a1.6 1.6 0 011.75 1.45l.9 9.15a1.6 1.6 0 01-1.45 1.75l-5.2.5A1.6 1.6 0 0110.65 18.5l-.9-9.15A1.6 1.6 0 0111.2 7.6z"/>',
+ basquet:'<path fill-rule="evenodd" d="M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zm5.9 4.1c-1.15.9-1.95 2.2-2.25 3.7-.2 1-.2 2 0 3 .3 1.5 1.1 2.8 2.25 3.7a7.3 7.3 0 000-10.4zM12 4.6c.42 0 .83.03 1.23.1-.62 1.02-1.02 2.2-1.18 3.45-.08.6-.08 1.2-.05 1.85h-.001V4.6zm-1.23.1c.62 1.02 1.02 2.2 1.18 3.45H12 11.05c-.16-1.25-.56-2.43-1.18-3.45.4-.07.81-.1 1.23-.1zM6.1 6.9a7.3 7.3 0 000 10.4c1.15-.9 1.95-2.2 2.25-3.7.2-1 .2-2 0-3-.3-1.5-1.1-2.8-2.25-3.7zM12 19.4c-.42 0-.83-.03-1.23-.1.62-1.02 1.02-2.2 1.18-3.45.05-.4.07-.8.06-1.2H12v4.75zm1.23-.1c-.62-1.02-1.02-2.2-1.18-3.45h1.9c-.16 1.25-.56 2.43-1.18 3.45.16.03.31.05.46.05z"/>',
+ pickleball:'<path d="M11 2.7c-4 .5-6.9 3.6-6.9 7.2 0 3.4 2.5 6.1 5.9 6.6V18H8.2a1 1 0 000 2h7.6a1 1 0 000-2H13v-1.5c3.4-.5 5.9-3.2 5.9-6.6 0-4.3-3.9-7.6-7.9-7.2zM9 6.6a1 1 0 110 2 1 1 0 010-2zm3.5 0a1 1 0 110 2 1 1 0 010-2zM9 10a1 1 0 110 2 1 1 0 010-2zm3.5 0a1 1 0 110 2 1 1 0 010-2z"/>'
 };
 function discIcon(id){return DIC[id]||IC.torneos;}
 function discColor(id){return (DIS[id]&&DIS[id].c)||'#2E3A86';}
@@ -712,7 +713,7 @@ function matchCard(p){
 function eventRow(p){ /* partido tipo 'gen' (natación/atletismo) sin enfrentamiento */
   var col=discColor(p.disc),dnom=(DIS[p.disc]&&DIS[p.disc].n)||'';
   return '<button class="li" onclick="ir(\'partido\',{id:\''+p.id+'\',tor:\''+p.tor+'\'})">'+
-    '<span class="ic" style="background:'+col+'">'+sv(discIcon(p.disc))+'</span>'+
+    '<span class="ic" style="background:'+col+'">'+svd(p.disc)+'</span>'+
     '<div class="tx"><b>'+esc(dnom)+' · '+esc((CAT[p.cat]&&CAT[p.cat].n)||p.cat||'')+'</b><span>'+esc(p.h)+' · '+esc(p.sede||'')+'</span></div>'+
     '<span class="ar">'+sv(IC.chevron)+'</span></button>';
 }
@@ -935,18 +936,88 @@ function listaPartidos(P,ns){
 function setF(k,v){var p=Object.assign({},S.params);p[k]=v;S.vista=S.vista;S.params=p;window.scrollTo(0,0);render();}
 
 /* ---- Olimpiadas: Tabla (sistema de puntos, sin inventar) ---- */
+
+/* ============ TABLA AUTOMÁTICA (posiciones por deporte + general) ============
+   Fase 1: posiciones de grupos 3/1/0 por deporte y categoría (auto por resultados).
+   Fase 2: tabla general por categoría, 30/20/15/10 según 1o-4o de cada deporte. */
+function esGrupos(p){return !p.fase||p.fase==='grupos';}
+function standings(disc,cat){
+  var all=DATA.partidos.map(pOli).filter(function(p){return p.tipo!=='gen'&&p.disc===disc&&p.cat===cat&&esGrupos(p)&&p.home.id&&p.away.id;});
+  var T={};
+  function ini(id,n){if(!T[id])T[id]={id:id,n:n,pj:0,g:0,e:0,p:0,gf:0,gc:0,pts:0};return T[id];}
+  all.forEach(function(m){ini(m.home.id,m.home.n);ini(m.away.id,m.away.n);});
+  all.filter(function(m){return m.gl!=null&&m.gv!=null;}).forEach(function(m){
+    var L=T[m.home.id],V=T[m.away.id];
+    L.pj++;V.pj++;L.gf+=m.gl;L.gc+=m.gv;V.gf+=m.gv;V.gc+=m.gl;
+    if(m.gl>m.gv){L.g++;V.p++;L.pts+=3;}
+    else if(m.gl<m.gv){V.g++;L.p++;V.pts+=3;}
+    else{L.e++;V.e++;L.pts++;V.pts++;}
+  });
+  var rows=Object.keys(T).map(function(k){return T[k];});
+  rows.sort(function(a,b){return b.pts-a.pts||((b.gf-b.gc)-(a.gf-a.gc))||(b.gf-a.gf)||a.n.localeCompare(b.n);});
+  return rows;
+}
+function placeSport(disc,cat){
+  var msAll=DATA.partidos.filter(function(p){return p.d===disc&&p.cat===cat;});
+  if(!msAll.length) return {estado:'sin',pos:[]};
+  if(msAll.every(function(p){return p.tipo==='gen';})) return {estado:'manual',pos:[]};
+  var ms=msAll.map(pOli).filter(function(p){return p.tipo!=='gen'&&p.home.id&&p.away.id;});
+  var fin=ms.filter(function(p){return p.fase==='final';});
+  var semis=ms.filter(function(p){return p.fase==='semifinal';});
+  var pend=ms.filter(function(p){return p.gl==null;}).length;
+  if(fin.length||semis.length){
+    var f=fin[0];
+    if(!f||f.gl==null) return {estado:'enjuego',pos:[]};
+    var champ=f.gl>f.gv?f.home.id:f.away.id, runner=f.gl>f.gv?f.away.id:f.home.id;
+    var st=standings(disc,cat),stPos={};st.forEach(function(r,i){stPos[r.id]=i;});
+    var losers=semis.filter(function(s){return s.gl!=null;}).map(function(s){return s.gl>s.gv?s.away.id:s.home.id;});
+    losers.sort(function(a,b){return (stPos[a]==null?99:stPos[a])-(stPos[b]==null?99:stPos[b]);});
+    var pos=[champ,runner];losers.forEach(function(l){if(pos.indexOf(l)<0)pos.push(l);});
+    return {estado:'definido',pos:pos.slice(0,4)};
+  }
+  if(pend>0) return {estado:'enjuego',pos:[]};
+  return {estado:'definido',pos:standings(disc,cat).slice(0,4).map(function(r){return r.id;})};
+}
+function generalTable(cat){
+  var discs={}; DATA.partidos.forEach(function(p){if(p.cat===cat)discs[p.d]=1;});
+  var teams={}, sports=[];
+  Object.keys(discs).forEach(function(disc){
+    var pl=placeSport(disc,cat);
+    sports.push({disc:disc,estado:pl.estado});
+    if(pl.estado==='definido'){
+      pl.pos.forEach(function(tid,idx){
+        var pts=DATA.puntos[String(idx+1)]||0;
+        if(!teams[tid]){var e=EQ[tid]||{};teams[tid]={id:tid,n:e.n||tid,pts:0,c1:0,c2:0,c3:0};}
+        teams[tid].pts+=pts;
+        if(idx===0)teams[tid].c1++;else if(idx===1)teams[tid].c2++;else if(idx===2)teams[tid].c3++;
+      });
+    }
+  });
+  var rows=Object.keys(teams).map(function(k){return teams[k];});
+  rows.sort(function(a,b){return b.pts-a.pts||b.c1-a.c1||b.c2-a.c2||b.c3-a.c3||a.n.localeCompare(b.n);});
+  sports.sort(function(a,b){return (DIS[a.disc]?DIS[a.disc].n:a.disc).localeCompare(DIS[b.disc]?DIS[b.disc].n:b.disc);});
+  return {rows:rows,sports:sports};
+}
+
 function oTabla(t){
-  var h='<div class="prot" style="background:linear-gradient(135deg,rgba(46,58,134,.10),transparent)">'+sv(IC.info)+
-    '<div><b>Tabla general por definirse</b><p>Las Olimpiadas se puntúan al cierre de cada disciplina. La tabla general se publicará a medida que las disciplinas finalicen.</p></div></div>';
-  h+=secHead('Sistema de puntos');
-  h+='<div class="card"><table class="st"><thead><tr><th class="l">Puesto</th><th>Puntos</th></tr></thead><tbody>'+
-    Object.keys(DATA.puntos).map(function(k){return '<tr><td class="l"><span class="en">'+k+'° lugar</span></td><td class="pts">'+DATA.puntos[k]+'</td></tr>';}).join('')+
-    '</tbody></table></div>';
-  h+=secHead('Categorías en disputa');
-  h+='<div class="row-list">'+DATA.categorias.map(function(c){
-    var n=DATA.equipos.filter(function(e){return e.cat===c.id;}).length;
-    return '<button class="li" onclick="ir(\'torneo\',{tab:\'equipos\',cat:\''+c.id+'\'},true)"><span class="ic" style="background:var(--navy)">'+sv(IC.grid)+'</span>'+
-      '<div class="tx"><b>'+esc(c.n)+'</b><span>'+esc(c.anios)+'</span></div><span class="cnt">'+n+' equipos</span></button>';}).join('')+'</div>';
+  var cats=DATA.categorias.filter(function(c){return DATA.equipos.some(function(e){return e.cat===c.id;});});
+  var cat=S.params.tcat||(cats[0]?cats[0].id:'');
+  var h='<div class="chips" style="margin-bottom:12px">'+cats.map(function(c){return '<button class="chip'+(cat===c.id?' on':'')+'" onclick="ir(\'torneo\',{tab:\'tabla\',tcat:\''+c.id+'\'},true)">'+esc(c.n)+'</button>';}).join('')+'</div>';
+  var G=generalTable(cat);
+  h+=secHead('Tabla general · '+(CAT[cat]?esc(CAT[cat].n):''));
+  if(!G.rows.length){
+    h+='<div class="card"><div style="padding:16px">'+empty('Sin puntos aún','La tabla general suma 30/20/15/10 por deporte cuando cada uno cierra su campeón. Todavía no hay deportes cerrados en esta categoría.')+'</div></div>';
+  } else {
+    h+='<div class="card"><table class="st"><thead><tr><th class="pos"></th><th class="l">Equipo</th><th>1°</th><th>2°</th><th>3°</th><th>Pts</th></tr></thead><tbody>'+
+      G.rows.map(function(r,i){return '<tr class="'+(i===0?'cl':'')+'"><td class="pos">'+(i+1)+'</td><td class="l"><span class="en">'+esc(titulo(r.n))+'</span></td><td>'+(r.c1||'')+'</td><td>'+(r.c2||'')+'</td><td>'+(r.c3||'')+'</td><td class="pts">'+r.pts+'</td></tr>';}).join('')+
+      '</tbody></table></div>';
+  }
+  h+=secHead('Deportes de la categoría');
+  h+='<div class="card"><div style="padding:2px 12px">'+G.sports.map(function(s){
+    var lbl=s.estado==='definido'?'<span class="bdg fin" style="margin-left:auto">Cerrado</span>':(s.estado==='manual'?'<span class="bdg next" style="margin-left:auto">Por definir</span>':'<span class="bdg next" style="margin-left:auto">En juego</span>');
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 2px;border-top:1px solid var(--line)"><span class="ic" style="width:30px;height:30px;border-radius:9px;background:'+(DIS[s.disc]?DIS[s.disc].c:'#333')+'">'+svd(s.disc)+'</span><span style="font-size:13px;font-weight:600">'+esc(DIS[s.disc]?DIS[s.disc].n:s.disc)+'</span>'+lbl+'</div>';
+  }).join('')+'</div></div>';
+  h+='<div class="nota" style="margin-top:12px">Cada deporte reparte <b>30</b> (1°) · <b>20</b> (2°) · <b>15</b> (3°) · <b>10</b> (4°). El campeón de la categoría es quien suma más puntos entre todos los deportes; desempate por más 1°, luego 2°, luego 3°. Las posiciones de cada deporte se calculan solas con los resultados (mira la pestaña <b>Posiciones</b> dentro de cada deporte).</div>';
   return h;
 }
 /* ---- Olimpiadas: Equipos ---- */
@@ -971,7 +1042,7 @@ function oDisciplinas(t){
   return '<div class="grid2">'+DATA.disciplinas.map(function(d){
     var n=DATA.partidos.filter(function(p){return p.d===d.id;}).length;
     return '<button class="tc mini" style="padding:13px" onclick="ir(\'disciplina\',{id:\''+d.id+'\'})">'+
-      '<span class="ic" style="width:46px;height:46px;border-radius:13px;background:'+d.c+'">'+sv(discIcon(d.id))+'</span>'+
+      '<span class="ic" style="width:46px;height:46px;border-radius:13px;background:'+d.c+'">'+svd(d.id)+'</span>'+
       '<div style="flex:1;min-width:0"><h4 style="font-size:14px">'+esc(d.n)+'</h4><p>'+n+' partidos</p></div></button>';
   }).join('')+'</div>';
 }
@@ -1071,7 +1142,7 @@ function vPartido(){
   else mid='<div class="sc" style="font-size:30px">'+esc(p.h)+'</div><div class="st">'+esc(fCorta(p.f))+' · Por jugar</div>';
   var clickable=!isMun && ((p.home.id&&EQ[p.home.id])||(p.away.id&&EQ[p.away.id]));
   var h='<div class="wrap" style="padding-top:14px">';
-  h+='<div class="sb"><div class="h"><span class="disc" style="background:'+col+'">'+sv(discIcon(p.disc))+'</span>'+esc(dnom)+' · '+esc(faseTxt)+'</div>'+
+  h+='<div class="sb"><div class="h"><span class="disc" style="background:'+col+'">'+svd(p.disc)+'</span>'+esc(dnom)+' · '+esc(faseTxt)+'</div>'+
     '<div class="grid">'+sbSide(p,'home',homeB)+
     '<div class="mid">'+mid+'</div>'+sbSide(p,'away',awayB)+'</div>'+
     (clickable?'<div class="tocpl">Toca un equipo para ver su nómina</div>':'')+
@@ -1129,15 +1200,26 @@ function vDisciplina(){
   var sec=DATA.reglamento.filter(function(s){return s.dep===d.id;});
   var parts=DATA.partidos.map(pOli).filter(function(p){return p.disc===d.id;});
   var h='<div class="wrap" style="padding-top:16px">';
-  h+='<div style="display:flex;align-items:center;gap:14px;margin-bottom:8px"><span class="ic" style="width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:'+d.c+'">'+sv(discIcon(d.id))+'</span>'+
+  h+='<div style="display:flex;align-items:center;gap:14px;margin-bottom:8px"><span class="ic" style="width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:'+d.c+'">'+svd(d.id)+'</span>'+
     '<div><h1 class="page" style="font-size:24px">'+esc(d.n)+'</h1><p class="page-sub">'+parts.length+' partidos · '+d.cats.length+' categorías</p></div></div>';
-  h+='<div class="seg" style="margin:14px 0">'+[['reglas','Reglas'],['cal','Calendario']].map(function(s){
+  h+='<div class="seg" style="margin:14px 0">'+[['reglas','Reglas'],['pos','Posiciones'],['cal','Calendario']].map(function(s){
     return '<button class="'+(seg===s[0]?'on':'')+'" onclick="ir(\'disciplina\',{id:\''+d.id+'\',seg:\''+s[0]+'\'},true)">'+s[1]+'</button>';}).join('')+'</div>';
   if(seg==='reglas'){
     h+='<div class="grid2" style="margin-bottom:14px"><div class="kpi"><b>'+esc(d.min)+'</b><span>Mínimo</span></div><div class="kpi"><b>'+esc(d.max)+'</b><span>Máximo</span></div></div>';
     if(sec.length){ h+='<div class="card">'+sec.map(function(s){return '<details class="acc"><summary>'+esc(s.t)+'</summary><div class="bd">'+esc(s.p||'').replace(/\n/g,'<br>')+'</div></details>';}).join('')+'</div>'; }
     else h+='<div class="nota">Las reglas específicas de esta disciplina se publicarán con el reglamento oficial.</div>';
     h+='<div style="margin-top:12px" class="nota">Categorías: '+d.cats.map(function(c){return esc(CAT[c]?CAT[c].n:c);}).join(' · ')+'</div>';
+  } else if(seg==='pos'){
+    var pcats=d.cats.filter(function(cid){return DATA.partidos.some(function(p){return p.d===d.id&&p.cat===cid&&p.tipo!=='gen';});});
+    if(!pcats.length){ h+='<div class="nota">Este deporte se define por evento o por tiempos, no por tabla de posiciones. El puntaje lo cierra la Comisión de Deportes.</div>'; }
+    else pcats.forEach(function(cid){
+      var rows=standings(d.id,cid);
+      h+='<h2 class="sec">'+esc(CAT[cid]?CAT[cid].n:cid)+'</h2>';
+      if(!rows.length||rows.every(function(r){return r.pj===0;})){ h+='<div class="nota" style="margin-bottom:10px">Aún sin partidos jugados en esta categoría.</div>'; return; }
+      h+='<div class="card" style="margin-bottom:12px;overflow-x:auto"><table class="st"><thead><tr><th class="pos"></th><th class="l">Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>Dif</th><th>Pts</th></tr></thead><tbody>'+
+        rows.map(function(r,i){var dif=r.gf-r.gc;return '<tr class="'+(i<2?'cl':'')+'"><td class="pos">'+(i+1)+'</td><td class="l"><span class="en">'+esc(titulo(r.n))+'</span></td><td>'+r.pj+'</td><td>'+r.g+'</td><td>'+r.e+'</td><td>'+r.p+'</td><td>'+(dif>0?'+':'')+dif+'</td><td class="pts">'+r.pts+'</td></tr>';}).join('')+
+        '</tbody></table></div>';
+    });
   } else {
     parts.sort(function(a,b){return(a.f+a.h).localeCompare(b.f+b.h);});
     var grp={},ord=[]; parts.forEach(function(p){if(!grp[p.f]){grp[p.f]=[];ord.push(p.f);}grp[p.f].push(p);});
@@ -1684,7 +1766,7 @@ function depResultados(){
     h+=grp[f].map(function(p){
       var done=p.gl!=null;
       var catn=p.cat&&CAT[p.cat]?CAT[p.cat].n:'';
-      return '<button class="li" onclick="ir(\'depmatch\',{id:\''+p.id+'\'})"><span class="ic" style="background:'+discColor(p.disc)+'">'+sv(discIcon(p.disc))+'</span>'+
+      return '<button class="li" onclick="ir(\'depmatch\',{id:\''+p.id+'\'})"><span class="ic" style="background:'+discColor(p.disc)+'">'+svd(p.disc)+'</span>'+
         '<div class="tx"><b>'+esc(titulo(p.home.n))+' vs '+esc(titulo(p.away.n))+'</b><span>'+esc(p.h||'')+' · '+esc(catn)+' · '+esc(p.sede||'')+'</span></div>'+
         (done?'<span class="bdg fin" style="margin-left:auto">'+p.gl+'-'+p.gv+'</span>':'<span class="bdg next" style="margin-left:auto">Registrar</span>')+'</button>';
     }).join('');
