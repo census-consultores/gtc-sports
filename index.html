@@ -152,6 +152,10 @@ h2.sec .lnk .i{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width
 .chip.wide{grid-column:1/-1}
 .chip .dt{flex:none}
 .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.stp{display:flex;align-items:center;gap:4px;width:104px;flex:none;justify-content:center}
+.stpb{width:30px;height:30px;flex:none;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:19px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;-webkit-user-select:none;user-select:none}
+.stpb:active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.stpv{width:30px;flex:none;text-align:center;padding:6px 0;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-weight:800;font-size:14px}
 .chip .dt{width:8px;height:8px;border-radius:3px}
 .chipf{flex:none;padding:8px 12px;border-radius:11px;font-size:12.5px;font-weight:600;background:var(--card);
   border:1px solid var(--line);color:var(--muted);display:flex;align-items:center;gap:6px}
@@ -629,10 +633,19 @@ var gtcAuth = {
   buscar:function(socio,cedula){var s=socioNorm(socio),c=cedulaNorm(cedula);
     if(!s)return Promise.resolve({ok:false,campo:'socio',msg:'Escribe tu código de socio.'});
     if(c.length!==10)return Promise.resolve({ok:false,campo:'cedula',msg:'La cédula debe tener 10 dígitos.'});
-    return sbGet('jugadores?select=id,nombre,num,socio,cedula,invitado,equipo_id&socio=eq.'+encodeURIComponent(s)+'&cedula=eq.'+encodeURIComponent(c)+'&activo=eq.true')
+    /* Coincidencia tolerante del código de socio: ignora ceros a la izquierda y
+       el sufijo -01/-02 (aunque esté pegado en la base, p. ej. "1676702"). La
+       cédula es la llave fuerte; el socio solo verifica. */
+    function baseNum(x){return String(x==null?'':x).replace(/\D/g,'').replace(/^0+/,'');}
+    function socioIgual(a,b){var na=baseNum(a),nb=baseNum(b);if(!na||!nb)return false;if(na===nb)return true;
+      if(nb.length>na.length&&nb.slice(0,na.length)===na&&nb.length-na.length<=2)return true;
+      if(na.length>nb.length&&na.slice(0,nb.length)===nb&&na.length-nb.length<=2)return true;return false;}
+    return sbGet('jugadores?select=id,nombre,num,socio,cedula,invitado,equipo_id&cedula=eq.'+encodeURIComponent(c)+'&activo=eq.true')
       .then(function(rows){
-        if(!rows||!rows.length)return {ok:false,campo:'cedula',msg:'No encontramos ese código de socio con esa cédula. Verifica los datos o escribe a deportes@gtcsports.ec.'};
-        var personas=rows.map(function(j){var e=EQ[j.equipo_id]||{};return {id:j.id,nombre:titulo(j.nombre),socio:s,cedula:c,cat:e.cat,equipo:j.equipo_id,equipoNom:e.n?titulo(e.n):'',rol:'socio'};});
+        if(!rows||!rows.length)return {ok:false,campo:'cedula',msg:'No encontramos esa cédula. Verifica los datos o escribe a deportes@gtcsports.ec.'};
+        var match=rows.filter(function(j){return socioIgual(s,j.socio);});
+        if(!match.length)return {ok:false,campo:'socio',msg:'La cédula existe, pero el código de socio no coincide. Revisa tu número de socio o escribe a deportes@gtcsports.ec.'};
+        var personas=match.map(function(j){var e=EQ[j.equipo_id]||{};return {id:j.id,nombre:titulo(j.nombre),socio:j.socio||s,cedula:c,cat:e.cat,equipo:j.equipo_id,equipoNom:e.n?titulo(e.n):'',rol:'socio'};});
         S.candidatos=personas;
         return {ok:true,personas:personas};
       })
@@ -1704,12 +1717,12 @@ function vDepMatch(){
     var js=(eq.j||[]).slice().sort(function(a,b){return (a.orden||0)-(b.orden||0);});
     return '<h2 class="sec">'+esc(titulo(eq.n))+' <span style="margin-left:auto;font-weight:700;color:var(--muted-2)">'+js.length+'</span></h2>'+
       '<div class="card"><div style="padding:4px 12px">'+
-      '<div style="display:flex;font-size:10.5px;color:var(--muted-2);font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:6px 2px 4px"><span style="flex:1">Jugador</span><span style="width:56px;text-align:center">Goles</span><span style="width:56px;text-align:center">Amar.</span></div>'+
+      '<div style="display:flex;font-size:10.5px;color:var(--muted-2);font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:6px 2px 4px"><span style="flex:1">Jugador</span><span style="width:104px;text-align:center">Goles</span><span style="width:104px;text-align:center">Amar.</span></div>'+
       js.map(function(j){
-        return '<div style="display:flex;align-items:center;gap:8px;padding:6px 2px;border-top:1px solid var(--line)">'+
+        return '<div style="display:flex;align-items:center;gap:8px;padding:7px 2px;border-top:1px solid var(--line)">'+
           '<span class="nm" style="flex:1;font-size:13px">'+esc(titulo(j.n))+(j.inv?' <span class="rr">Inv</span>':'')+'</span>'+
-          '<input data-g="'+j.id+'" data-eq="'+eq.id+'" type="number" min="0" inputmode="numeric" value="'+(gmap[j.id]||'')+'" style="width:52px;text-align:center;padding:6px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)">'+
-          '<input data-a="'+j.id+'" data-eq="'+eq.id+'" type="number" min="0" max="9" inputmode="numeric" value="'+(amap[j.id]||'')+'" style="width:52px;text-align:center;padding:6px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)">'+
+          stepCtl('g',j.id,eq.id,gmap[j.id]||0)+
+          stepCtl('a',j.id,eq.id,amap[j.id]||0)+
         '</div>';
       }).join('')+'</div></div>';
   }
@@ -1724,6 +1737,21 @@ function vDepMatch(){
     '<button class="btn line" style="margin-top:8px" onclick="guardarPartidoEdit()">Guardar cambios del partido</button></div></details>';
   h+='</div>'+pie();
   return h;
+}
+function stepCtl(kind,jid,eqid,val){
+  return '<span class="stp">'+
+    '<button type="button" class="stpb" aria-label="Restar" onclick="stepAdd(this,-1)">−</button>'+
+    '<input class="stpv" data-'+kind+'="'+jid+'" data-eq="'+eqid+'" type="text" inputmode="numeric" readonly value="'+(val>0?val:'')+'">'+
+    '<button type="button" class="stpb" aria-label="Sumar" onclick="stepAdd(this,1)">+</button>'+
+  '</span>';
+}
+function stepAdd(btn,delta){
+  var inp=delta<0?btn.nextElementSibling:btn.previousElementSibling; if(!inp)return;
+  var isA=inp.getAttribute('data-a')!=null;
+  var n=parseInt(inp.value||'0',10); if(isNaN(n))n=0;
+  n+=delta; if(n<0)n=0; var mx=isA?3:30; if(n>mx)n=mx;
+  inp.value=n>0?String(n):'';
+  try{if(navigator.vibrate)navigator.vibrate(8);}catch(e){}
 }
 function guardarResultado(){
   var b=document.getElementById('dmSave');var err=document.getElementById('dmErr');
