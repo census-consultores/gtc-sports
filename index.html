@@ -53,7 +53,8 @@ img{display:block;max-width:100%}
   background:radial-gradient(130% 100% at 50% 8%,#2A3170,#151A46 45%,#0A0D26 100%);
   transition:opacity .34s ease, visibility .34s}
 #splash.off{opacity:0;visibility:hidden}
-.sp{text-align:center;color:#fff;animation:spr .5s cubic-bezier(.2,.8,.2,1) both}
+.sp{text-align:center;color:#fff;animation:spr .5s cubic-bezier(.2,.8,.2,1) both;transition:opacity .16s ease}
+#splash.off .sp{opacity:0}
 .sp .esc{width:104px;margin:0 auto 20px;filter:drop-shadow(0 10px 26px rgba(0,0,0,.5))}
 .sp .wm{font-family:var(--fa);font-weight:900;font-size:36px;letter-spacing:-.03em;line-height:1}
 .sp .wm span{color:var(--gold)}
@@ -347,6 +348,9 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
 .acc summary:after{content:"⌄";margin-left:auto;color:var(--muted-2);font-size:17px;transition:.2s}
 .acc[open] summary:after{transform:rotate(180deg)}
 .acc .bd{padding:0 15px 14px;font-size:13px;color:var(--muted);line-height:1.65}
+.bd p{margin:0 0 10px;text-align:justify;text-justify:inter-word;-webkit-hyphens:auto;hyphens:auto}
+.bd p:last-child{margin-bottom:0}
+.bd p.rp-h{font-weight:700;color:var(--ink);text-align:left;margin-top:4px}
 .acc{border-bottom:1px solid var(--line-2)} .acc:last-child{border-bottom:none}
 
 .foot{text-align:center;padding:26px 16px 8px;font-size:11px;color:var(--muted-2);line-height:1.7}
@@ -723,6 +727,10 @@ function backBar(txt,onclick){return '<div class="wrap" style="padding-top:12px"
 function pie(){return '<div class="foot">'+
   '<div class="by"><span style="display:block;margin-bottom:7px">Plataforma desarrollada por</span>'+
   '<img src="'+LOGO_BASE+'_census.png" alt="Census Legal Tech" loading="lazy" style="height:30px;display:block;margin:0 auto"></div></div>';}
+function regParrafos(p){
+  var arr = Array.isArray(p) ? p : (p!=null ? String(p).split(/\n+/) : []);
+  return arr.map(function(par){ par=String(par).trim(); return par ? '<p>'+esc(par)+'</p>' : ''; }).join('') || '<p>—</p>';
+}
 function inicioLogin(){
   return '<button class="mc" onclick="ir(\'acceso\',{},true)" style="width:100%;text-align:left;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--navy),var(--deep));border:none;margin-bottom:4px">'+
     '<span style="width:44px;height:44px;flex:none;border-radius:13px;background:rgba(255,255,255,.14);display:grid;place-items:center">'+
@@ -1218,7 +1226,7 @@ function vDisciplina(){
     return '<button class="'+(seg===s[0]?'on':'')+'" onclick="ir(\'disciplina\',{id:\''+d.id+'\',seg:\''+s[0]+'\'},true)">'+s[1]+'</button>';}).join('')+'</div>';
   if(seg==='reglas'){
     h+='<div class="grid2" style="margin-bottom:14px"><div class="kpi"><b>'+esc(d.min)+'</b><span>Mínimo</span></div><div class="kpi"><b>'+esc(d.max)+'</b><span>Máximo</span></div></div>';
-    if(sec.length){ h+='<div class="card">'+sec.map(function(s){return '<details class="acc"><summary>'+esc(s.t)+'</summary><div class="bd">'+esc(s.p||'').replace(/\n/g,'<br>')+'</div></details>';}).join('')+'</div>'; }
+    if(sec.length){ h+='<div class="card">'+sec.map(function(s){return '<details class="acc"><summary>'+esc(s.t)+'</summary><div class="bd">'+regParrafos(s.p)+'</div></details>';}).join('')+'</div>'; }
     else h+='<div class="nota">Las reglas específicas de esta disciplina se publicarán con el reglamento oficial.</div>';
     h+='<div style="margin-top:12px" class="nota">Categorías: '+d.cats.map(function(c){return esc(CAT[c]?CAT[c].n:c);}).join(' · ')+'</div>';
   } else if(seg==='pos'){
@@ -1377,7 +1385,7 @@ function liNav(icn,t,sub,onclick){return '<button class="li"'+(onclick?' onclick
 function vReglamento(){
   var h=backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Reglamento</h1><p class="page-sub">Olimpiadas Guayaquil Tenis Club 2026 · actualizado '+esc(DATA.meta.reglamentoAct)+'.</p>';
   var gen=DATA.reglamento.filter(function(s){return!s.dep;});
-  h+='<div class="card" style="margin-top:14px">'+gen.map(function(s){return '<details class="acc"><summary>'+esc(s.t)+'</summary><div class="bd">'+esc(s.p||'').replace(/\n/g,'<br>')+'</div></details>';}).join('')+'</div>';
+  h+='<div class="card" style="margin-top:14px">'+gen.map(function(s){return '<details class="acc"><summary>'+esc(s.t)+'</summary><div class="bd">'+regParrafos(s.p)+'</div></details>';}).join('')+'</div>';
   h+='</div>'+pie();
   return h;
 }
