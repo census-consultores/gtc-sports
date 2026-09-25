@@ -101,6 +101,29 @@ export default async function handler(req, res) {
       });
     }
 
+    // ---- SRI: cédula -> nombre completo (catastro RUC) ----
+    if (accion === 'sri_batch') {
+      if (!puedeLeer) return res.status(403).json({ ok: false, msg: 'Sin permiso.' });
+      const ceds = (body.cedulas || []).slice(0, 60);
+      const SRI = 'https://srienlinea.sri.gob.ec/sri-catastro-sujeto-servicio-internet/rest/Persona/obtenerPersonaDesdeRucPorIdentificacion?numeroRuc=';
+      async function one(c) {
+        const ruc = String(c).replace(/\D/g, '');
+        if (ruc.length !== 10) return [c, null];
+        try {
+          const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 6000);
+          const r = await fetch(SRI + ruc + '001', { headers: { Accept: 'application/json' }, signal: ac.signal });
+          clearTimeout(t);
+          if (!r.ok) return [c, null];
+          const j = await r.json();
+          return [c, j && j.nombreCompleto ? j.nombreCompleto : null];
+        } catch (e) { return [c, null]; }
+      }
+      const q = ceds.slice(); const out = {};
+      async function worker() { while (q.length) { const c = q.shift(); const [k, v] = await one(c); out[k] = v; } }
+      await Promise.all(Array.from({ length: 8 }, worker));
+      return res.status(200).json({ ok: true, names: out });
+    }
+
     // ---- escrituras ----
     if (!puedeEscribir) return res.status(403).json({ ok: false, msg: 'Tu rol puede ver todo pero no editar. Solo Deportes y el superadministrador registran resultados y cambios.' });
 
