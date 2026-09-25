@@ -152,6 +152,8 @@ h2.sec .lnk .i{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width
 .chip{padding:9px 8px;border-radius:12px;font-size:12px;font-weight:600;background:var(--card);
   border:1px solid var(--line);color:var(--muted);transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 .chip.wide{grid-column:1/-1}
+.chips.auto{display:flex;flex-wrap:wrap}
+.chips.auto .chip{flex:0 0 auto;white-space:nowrap;overflow:visible;text-overflow:clip;padding:9px 13px}
 .chip .dt{flex:none}
 .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 .stp{display:flex;align-items:center;gap:4px;width:104px;flex:none;justify-content:center}
@@ -799,7 +801,7 @@ function vInicio(){
       h+='<div class="card" style="overflow-x:auto"><table class="st"><thead><tr><th class="pos"></th><th class="l">Equipo</th><th>Pts</th></tr></thead><tbody>'+
         G.rows.map(function(r,i){var mine=r.id===s.equipo;return '<tr class="'+(i===0?'cl':'')+'"'+(mine?' style="background:rgba(46,58,134,.10)"':'')+'><td class="pos">'+(i+1)+'</td><td class="l"><span class="en"'+(mine?' style="font-weight:800;color:var(--ink)"':'')+'>'+esc(titulo(r.n))+(mine?' •':'')+'</span></td><td class="pts">'+r.pts+'</td></tr>';}).join('')+
         '</tbody></table></div>';
-      h+='<div class="nota" style="margin-top:6px;font-size:11.5px">Suma 30/20/15/10 por disciplina según el reglamento. Provisional: se actualiza con cada resultado ('+G.nsports+' disciplina'+(G.nsports===1?'':'s')+' en juego).</div>';
+      h+='<div class="nota" style="margin-top:6px;font-size:11.5px">El <b>campeón se define por categoría</b>: gana quien más puntos suma entre todos los deportes, repartiendo <b>30·20·15·10</b> (1°-4°) en cada uno; desempate por más 1°, luego 2°, luego 3°. Provisional: se actualiza con cada resultado ('+G.nsports+' disciplina'+(G.nsports===1?'':'s')+' en juego).</div>';
     }
     /* tus últimos resultados */
     if(miosRec.length){ h+=secHead('Tus últimos resultados'); h+=miosRec.map(matchCard).join(''); }
@@ -1229,7 +1231,7 @@ function vHist2025(){
     '<span class="ic" style="width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#0C1030,#20264f);color:#F0D98A">'+sv2(IC.estrella,24)+'</span>'+
     '<div><h1 class="page" style="font-size:23px">Olimpiadas GTC 2025</h1>'+
     '<p class="page-sub">Resultados finales · Actualizado '+esc(HIST_2025.act)+'</p></div></div>';
-  h+='<div class="chips" style="margin:14px 0">'+cats.map(function(x,i){return '<button class="chip'+(i===ci?' on':'')+'" onclick="ir(\'hist2025\',{hc:'+i+'},true)">'+esc(x.n)+'</button>';}).join('')+'</div>';
+  h+='<div class="chips auto" style="margin:14px 0">'+cats.map(function(x,i){return '<button class="chip'+(i===ci?' on':'')+'" onclick="ir(\'hist2025\',{hc:'+i+'},true)">'+esc(x.n)+'</button>';}).join('')+'</div>';
   h+=secHead('Tabla general · '+esc(c.n));
   h+='<div class="card" style="overflow-x:auto"><table class="st"><thead><tr><th class="pos"></th><th class="l">Equipo</th><th>Pts</th></tr></thead><tbody>'+
     c.eq.map(function(r,i){return '<tr class="'+(i<3?'cl':'')+'"><td class="pos">'+(i+1)+'</td><td class="l"><div style="display:flex;align-items:center;gap:9px">'+badge({id:slugTeam(r.n),n:r.n},28)+'<span class="en">'+esc(titulo(r.n))+'</span></div></td><td class="pts">'+r.tot+'</td></tr>';}).join('')+
@@ -1241,7 +1243,7 @@ function vHist2025(){
       '<div style="display:flex;flex-wrap:wrap;gap:6px">'+(ks.length?ks.map(function(d){return '<span style="font-size:11px;background:var(--line-2);border-radius:999px;padding:3px 9px"><b>'+esc(d)+'</b> '+r.p[d]+'</span>';}).join(''):'<span style="font-size:12px;color:var(--muted)">Sin puntos por disciplina</span>')+'</div>'+
     '</div></div>';
   }).join('');
-  h+='<div class="nota" style="margin-top:6px">Puntaje oficial de la edición 2025. Los escudos se reutilizan cuando el equipo vuelve a participar en 2026.</div>';
+  h+='<div class="nota" style="margin-top:6px">El campeón se define <b>por categoría</b>: gana quien más puntos suma entre todos los deportes (30·20·15·10 por 1°-4° en cada uno). Puntaje oficial de la edición 2025; los escudos se reutilizan cuando el equipo vuelve a participar en 2026.</div>';
   h+='</div>'+pie();
   return __bb+h;
 }
