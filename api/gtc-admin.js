@@ -50,6 +50,12 @@ async function sb(path, opts = {}) {
 }
 
 export default async function handler(req, res) {
+  // CORS: la app nativa (capacitor://localhost) llama a este endpoint de forma cross-origin.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!URL || !KEY) return res.status(500).json({ error: 'Faltan variables de entorno de Supabase' });
   try {
