@@ -1510,8 +1510,10 @@ function vAcceso(){
     '<div class="foot" style="padding-top:14px;padding-bottom:4px"><div class="by"><span style="display:block;margin-bottom:6px">Plataforma desarrollada por</span><img src="'+LOGO_BASE+'_census.png" alt="Census Legal Tech" loading="lazy" style="height:26px;display:block;margin:0 auto"></div></div></div></div>';
 }
 /* ¿el dispositivo es una computadora? (no móvil/tablet) */
+function esNativo(){ try{ return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()); }catch(_){ return false; } }
 function esComputadora(){
   try{
+    if(esNativo()) return false;
     var ua=navigator.userAgent||'';
     if(/Android|iPhone|iPad|iPod|Mobi|Windows Phone/i.test(ua)) return false;
     var touch=('ontouchstart' in window)||(navigator.maxTouchPoints>0);
@@ -1543,6 +1545,19 @@ function entrarCon(prov){
   var e=document.getElementById('errSSO');
   if(!(typeof sbAuthReady==='function'&&sbAuthReady())){ if(e)e.innerHTML='<div class="aviso">El inicio con Apple/Google se activa en la app publicada. Por ahora usa <b>Continuar con correo</b>.</div>'; return; }
   try{ localStorage.setItem('gtc_auth_prov',prov); }catch(_){}
+  if(esNativo()){
+    /* App nativa: abrir el proveedor en el navegador del sistema y volver por deep-link */
+    sbAuth.auth.signInWithOAuth({provider:prov,options:{redirectTo:'ec.gtcsports.app://auth-callback',skipBrowserRedirect:true}})
+      .then(function(r){
+        if(r&&r.error){ if(e)e.innerHTML='<div class="aviso">No se pudo iniciar con '+esc(prov)+'. Intenta con correo.</div>'; return; }
+        var url=r&&r.data&&r.data.url;
+        var B=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Browser;
+        if(url&&B&&B.open){ B.open({url:url,presentationStyle:'popover'}); }
+        else if(url){ window.location.href=url; }
+      })
+      .catch(function(){ if(e)e.innerHTML='<div class="aviso">No se pudo iniciar. Intenta con correo.</div>'; });
+    return;
+  }
   sbAuth.auth.signInWithOAuth({provider:prov,options:{redirectTo:location.origin+location.pathname}})
     .then(function(r){ if(r&&r.error&&e){ e.innerHTML='<div class="aviso">No se pudo iniciar con '+esc(prov)+'. Intenta con correo.</div>'; } })
     .catch(function(){ if(e)e.innerHTML='<div class="aviso">No se pudo iniciar. Intenta con correo.</div>'; });
@@ -1871,6 +1886,22 @@ try{ if(typeof sbAuthReady==='function'&&sbAuthReady()){ sbAuth.auth.onAuthState
     if(!(ses&&ses.socio&&ses.perfilCompleto)&&okState&&!esComputadora()){ onIdentity(session.user,(session.user.app_metadata&&session.user.app_metadata.provider)||'correo'); }
   }
 }); } }catch(e){}
+/* App nativa (Capacitor): completar OAuth de Apple/Google al volver por deep-link */
+try{
+  if(esNativo() && window.Capacitor.Plugins && window.Capacitor.Plugins.App){
+    var parmDe=function(u,k){ try{ var q=(u.split('#')[0].split('?')[1]||''); if(!q&&u.indexOf('#')>=0)q=u.split('#')[1]||''; var ps=q.split('&'); for(var i=0;i<ps.length;i++){ var kv=ps[i].split('='); if(decodeURIComponent(kv[0])===k) return decodeURIComponent(kv[1]||''); } }catch(_){} return ''; };
+    window.Capacitor.Plugins.App.addListener('appUrlOpen', function(data){
+      var url=(data&&data.url)||''; if(url.indexOf('auth-callback')<0 && url.indexOf('code=')<0) return;
+      var B=window.Capacitor.Plugins.Browser; if(B&&B.close){ try{B.close();}catch(_){}}
+      if(!(typeof sbAuthReady==='function'&&sbAuthReady())) return;
+      var code=parmDe(url,'code');
+      if(code){ sbAuth.auth.exchangeCodeForSession(code).then(function(r){
+        var u=r&&r.data&&(r.data.user||(r.data.session&&r.data.session.user));
+        if(u){ onIdentity(u,(u.app_metadata&&u.app_metadata.provider)||'correo'); }
+      }).catch(function(){}); }
+    });
+  }
+}catch(e){}
 (function(){
   var sp=document.getElementById('splash'); if(!sp) return;
   var revealed=false;
