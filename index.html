@@ -68,7 +68,7 @@ img{display:block;max-width:100%}
 @media(max-height:680px){.sp .esc{width:84px} .sp .foot img{height:52px}}
 
 /* ---------- Header ---------- */
-#top{position:sticky;top:0;z-index:60;background:var(--deep);color:#fff;height:var(--hd);
+#top{position:sticky;top:0;z-index:60;background:var(--deep);color:#fff;height:calc(var(--hd) + env(safe-area-inset-top));
   display:flex;align-items:center;gap:11px;padding:0 14px;padding-top:env(safe-area-inset-top)}
 #top .escT{width:30px;height:30px;flex:none}
 #top .wmT{font-weight:900;font-size:18px;letter-spacing:-.02em}
@@ -154,6 +154,8 @@ h2.sec .lnk .i{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width
 .chip.wide{grid-column:1/-1}
 .chips.auto{display:flex;flex-wrap:wrap}
 .chips.auto .chip{flex:0 0 auto;white-space:nowrap;overflow:visible;text-overflow:clip;padding:9px 13px}
+.chips.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.chips.g2 .chip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:10px 10px}
 .chip .dt{flex:none}
 .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 .stp{display:flex;align-items:center;gap:4px;width:104px;flex:none;justify-content:center}
@@ -1254,7 +1256,7 @@ function vHist2025(){
     '<span class="ic" style="width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#0C1030,#20264f);color:#F0D98A">'+sv2(IC.estrella,24)+'</span>'+
     '<div><h1 class="page" style="font-size:23px">Olimpiadas GTC 2025</h1>'+
     '<p class="page-sub">Resultados finales · Actualizado '+esc(HIST_2025.act)+'</p></div></div>';
-  h+='<div class="chips auto" style="margin:14px 0">'+cats.map(function(x,i){return '<button class="chip'+(i===ci?' on':'')+'" onclick="ir(\'hist2025\',{hc:'+i+'},true)">'+esc(x.n)+'</button>';}).join('')+'</div>';
+  h+='<div class="chips g2" style="margin:14px 0">'+cats.map(function(x,i){return '<button class="chip'+(i===ci?' on':'')+'" onclick="ir(\'hist2025\',{hc:'+i+'},true)">'+esc(x.n)+'</button>';}).join('')+'</div>';
   h+=secHead('Tabla general · '+esc(c.n));
   h+='<div class="card" style="overflow-x:auto"><table class="st"><thead><tr><th class="pos"></th><th class="l">Equipo</th><th>Pts</th></tr></thead><tbody>'+
     c.eq.map(function(r,i){return '<tr class="'+(i<3?'cl':'')+'"><td class="pos">'+(i+1)+'</td><td class="l"><div style="display:flex;align-items:center;gap:9px">'+badge({id:slugTeam(r.n),n:r.n},28)+'<span class="en">'+esc(titulo(r.n))+'</span></div></td><td class="pts">'+r.tot+'</td></tr>';}).join('')+
@@ -1550,8 +1552,8 @@ function accChooser(){
   var ios=(typeof plataforma==='function'&&plataforma()==='ios');
   return '<h1>Ingresa a<br>GTC Sports</h1>'+
     '<p class="sub">Entra con tu cuenta y luego confirmas tu código de socio y cédula.</p>'+
-    (ios?'<button class="btn sso apple" onclick="entrarCon(\'apple\')">'+IC.apple+'Continuar con Apple</button>':'')+
-    '<button class="btn sso google" onclick="entrarCon(\'google\')">'+IC.google+'Continuar con Google</button>'+
+    (ios?'<button class="btn sso apple" onclick="entrarCon(\'apple\')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.01-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.89-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.79 1.3 10.34.86 1.25 1.89 2.65 3.24 2.6 1.3-.05 1.79-.84 3.36-.84 1.57 0 2.01.84 3.39.81 1.4-.02 2.28-1.27 3.13-2.53.99-1.45 1.4-2.85 1.42-2.92-.03-.01-2.73-1.05-2.76-4.16zM14.64 4.6c.72-.87 1.2-2.08 1.07-3.29-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.08 3.18 1.15.09 2.32-.58 3.03-1.45z"/></svg>Continuar con Apple</button>':'')+
+    '<button class="btn sso google" onclick="entrarCon(\'google\')"><svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continuar con Google</button>'+
     '<button class="btn sso mail" onclick="ir(\'acceso\',{paso:\'correo\'},true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Continuar con correo</button>'+
     '<div id="errSSO"></div>'+
     '<button class="btn ghost" style="margin-top:12px" onclick="S.hist=[];ir(\'inicio\',{},true)">Explorar torneos finalizados</button>'+
