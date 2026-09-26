@@ -297,6 +297,9 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
 .li:last-child{border-bottom:none} .li:hover{background:var(--card-2)}
 .li .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none}
 .li .ic .i{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2}
+/* Íconos de deporte realistas (Opción B): imagen a color llenando el círculo blanco */
+.depimg{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;background:#fff;box-shadow:inset 0 0 0 1px rgba(16,20,58,.08)}
+.li .ic .depimg{width:100%;height:100%}
 .li .tx{flex:1;min-width:0} .li .tx b{font-size:14.5px;font-weight:700;color:var(--ink);display:block}
 .li .tx span{font-size:12px;color:var(--muted-2)}
 .li .ar{color:var(--muted-2)} .li .ar .i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
@@ -479,7 +482,8 @@ function fechaChip(iso){if(!iso)return '';if(iso===hoyISO())return 'Hoy';var d=d
 function sv(d){return '<svg class="i" viewBox="0 0 24 24">'+d+'</svg>';}
 var DEPSET={futbol:1,tenis:1,natacion:1,carrera:1,pingpong:1,beachtenis:1,padel:1,beachvolley:1,cuarenta:1,basquet:1,pickleball:1};
 function svdSvg(id){return '<svg class="i" viewBox="0 0 24 24" style="fill:#fff;stroke:none">'+(DIC[id]||'<circle cx="12" cy="12" r="7"/>')+'</svg>';}
-function svd(id){ if(DEPSET[id]) return '<svg class="i" viewBox="0 0 24 24"><image href="'+LOGO_BASE+'dep/'+id+'.png" x="1" y="1" width="22" height="22"/></svg>'; return svdSvg(id); }
+function svd(id){ if(DEPSET[id]) return '<img class="depimg" data-d="'+id+'" src="'+LOGO_BASE+'depc/'+id+'.png" alt="" onerror="depFail(this)">'; return svdSvg(id); }
+function depFail(img){ try{ img.insertAdjacentHTML('afterend', svdSvg(img.getAttribute('data-d')||'')); img.remove(); }catch(e){ try{img.style.display='none';}catch(_){} } }
 var IC={
  inicio:'<path d="M3.5 10.5 12 4l8.5 6.5V20a1 1 0 0 1-1 1h-5v-6h-5v6h-5a1 1 0 0 1-1-1z"/>',
  torneos:'<path d="M7 4h10v3a5 5 0 0 1-10 0z"/><path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3"/><path d="M12 12v4M9 20h6M10 20l.4-4M14 20l-.4-4"/>',
