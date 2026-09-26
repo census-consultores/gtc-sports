@@ -36,6 +36,7 @@ html.natfonts{--fa:'ArchivoB',system-ui,-apple-system,sans-serif;--fs:'Instrumen
   --r:18px; --r-sm:13px; --r-xs:10px; --r-lg:24px;
   --fs:'Instrument Serif',Georgia,serif; --fa:'Archivo',system-ui,-apple-system,sans-serif;
   --tab:70px; --hd:56px; --gut:18px;
+  --sat:env(safe-area-inset-top); --sab:env(safe-area-inset-bottom);
 }
 :root[data-theme="dark"], :root:not([data-theme="light"]) .dkauto{}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
@@ -81,8 +82,8 @@ img{display:block;max-width:100%}
 @media(max-height:680px){.sp .esc{width:84px} .sp .foot img{height:52px}}
 
 /* ---------- Header ---------- */
-#top{position:relative;z-index:60;flex:none;background:var(--deep);color:#fff;height:calc(var(--hd) + env(safe-area-inset-top));
-  display:flex;align-items:center;gap:11px;padding:0 14px;padding-top:env(safe-area-inset-top)}
+#top{position:relative;z-index:60;flex:none;background:var(--deep);color:#fff;height:calc(var(--hd) + var(--sat));
+  display:flex;align-items:center;gap:11px;padding:0 14px;padding-top:var(--sat)}
 #top .escT{width:30px;height:30px;flex:none}
 #top .wmT{font-weight:900;font-size:18px;letter-spacing:-.02em}
 #top .wmT span{color:var(--gold)}
@@ -991,8 +992,7 @@ function oResumen(t){
   h+='<div class="grid3">'+DATA.disciplinas.slice(0,6).map(function(d){
     var n=DATA.partidos.filter(function(p){return p.d===d.id;}).length;
     return '<button class="kpi" onclick="ir(\'disciplina\',{id:\''+d.id+'\'})">'+
-      '<span class="i" style="width:22px;height:22px;margin:0 auto 6px;display:block">'+
-      '<svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:'+d.c+';fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round">'+discIcon(d.id).replace(/<\/?svg[^>]*>/g,'')+'</svg></span>'+
+      '<span class="ic" style="width:40px;height:40px;margin:0 auto 8px;background:'+d.c+'">'+svd(d.id)+'</span>'+
       '<b style="font-size:13px">'+esc(d.n)+'</b><span>'+n+' partidos</span></button>';
   }).join('')+'</div>';
   if(typeof golOlimpiadasHTML==='function'){ var gh=golOlimpiadasHTML(6); if(gh){ h+=secHead('Goleadores · Fútbol'); h+=gh; } }
@@ -2077,6 +2077,32 @@ try{
   document.addEventListener('focusout',function(){ setTimeout(_lockH,120); setTimeout(_lockH,400); });
   document.addEventListener('visibilitychange',function(){ if(!document.hidden) _relock(); });
   try{ if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){ window.Capacitor.Plugins.App.addListener('resume',_relock); } }catch(_){}
+}catch(e){}
+/* Safe-area LOCK: WKWebView a veces reporta env(safe-area-inset-top)=0 por un instante al
+   reanudar/reabrir la app, y el header (#top) se encoge y "salta". Medimos el inset real una vez,
+   lo fijamos en --sat/--sab (px) y nunca lo dejamos bajar salvo al rotar. Elimina el glitch. */
+try{
+  var _root=document.documentElement;
+  function _mkProbe(prop){ var p=document.createElement('div');
+    p.style.cssText='position:fixed;top:0;left:0;width:0;visibility:hidden;pointer-events:none;height:env('+prop+')';
+    document.body.appendChild(p); return p; }
+  var _pTop=_mkProbe('safe-area-inset-top'), _pBot=_mkProbe('safe-area-inset-bottom');
+  var _maxT=0,_maxB=0;
+  function _measSA(){ try{
+      var t=parseFloat(getComputedStyle(_pTop).height)||0;
+      var b=parseFloat(getComputedStyle(_pBot).height)||0;
+      if(t>_maxT){ _maxT=t; _root.style.setProperty('--sat',_maxT+'px'); }
+      if(b>_maxB){ _maxB=b; _root.style.setProperty('--sab',_maxB+'px'); }
+    }catch(_){}
+  }
+  function _resetSA(){ _maxT=0;_maxB=0; _root.style.removeProperty('--sat'); _root.style.removeProperty('--sab');
+    setTimeout(_measSA,80); setTimeout(_measSA,320); setTimeout(_measSA,700); }
+  _measSA(); setTimeout(_measSA,60); setTimeout(_measSA,300); setTimeout(_measSA,800);
+  window.addEventListener('resize',_measSA);
+  window.addEventListener('pageshow',_measSA);
+  window.addEventListener('orientationchange',_resetSA);
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden){ setTimeout(_measSA,50); setTimeout(_measSA,300); } });
+  try{ if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){ window.Capacitor.Plugins.App.addListener('resume',function(){ setTimeout(_measSA,50); setTimeout(_measSA,300); setTimeout(_measSA,700); }); } }catch(_){}
 }catch(e){}
 (function(){
   var sp=document.getElementById('splash'); if(!sp) return;
