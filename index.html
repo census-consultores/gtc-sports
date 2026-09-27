@@ -1544,12 +1544,48 @@ function vMas(){
     h+='<div class="card"><div class="li"><span class="ic" style="background:var(--navy)">'+sv(IC.escudo)+'</span>'+
       '<div class="tx"><b>'+esc(s.nombre||'Socio')+'</b><span>'+subS+'</span></div>'+
       '<button class="btn line" style="width:auto;padding:8px 14px" onclick="gtcAuth.salir()">Salir</button></div></div>';
+    if(!gtcAuth.esAdmin()){ h+='<div style="margin-top:10px"><button class="btn line" style="width:100%;color:#c0392b;border-color:#c0392b" onclick="eliminarMiCuentaFlujo()">Eliminar mi cuenta</button><p style="opacity:.6;margin:8px 4px 0;font-size:12px;line-height:1.4">Elimina tu cuenta y tus datos de contacto de forma permanente. El registro deportivo del Club no se ve afectado.</p></div>'; }
   } else {
     h+=secHead('Equipo del Club');
     h+='<div class="row-list">'+liNav('escudo','Acceso administración','Superadmin, Deportes, Comisión, Directorio',"ir('acceso',{paso:'admin'},true)")+'</div>';
   }
   h+='</div>'+pie();
   return h;
+}
+function eliminarMiCuentaFlujo(){
+  var ov=document.createElement('div'); ov.id='ovDel';
+  ov.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(6,8,24,.72);display:flex;align-items:center;justify-content:center;padding:22px';
+  ov.innerHTML='<div class="card" style="max-width:420px;width:100%;padding:20px">'
+    +'<h2 style="margin:0 0 8px;font-size:19px">¿Eliminar tu cuenta?</h2>'
+    +'<p style="margin:0 0 6px;font-size:14px;line-height:1.5">Esta acción es <b>permanente</b>. Se eliminarán tu cuenta de acceso (Apple, Google o correo) y tus datos de contacto guardados (correo, WhatsApp, fecha de nacimiento, preferencias).</p>'
+    +'<p style="margin:0 0 16px;font-size:13px;opacity:.7;line-height:1.5">Tu registro deportivo dentro del Club (la nómina de tu equipo) es información del Club y no se ve afectada.</p>'
+    +'<div id="ovDelMsg"></div>'
+    +'<div style="display:flex;gap:10px;margin-top:6px">'
+      +'<button class="btn line" style="flex:1" onclick="(function(){var o=document.getElementById(\'ovDel\');if(o)o.remove();})()">Cancelar</button>'
+      +'<button id="ovDelGo" class="btn" style="flex:1;background:#c0392b;border-color:#c0392b;color:#fff" onclick="eliminarMiCuentaGo()">Sí, eliminar</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+}
+function eliminarMiCuentaGo(){
+  var b=document.getElementById('ovDelGo'), msg=document.getElementById('ovDelMsg');
+  if(b){b.textContent='Eliminando…';b.disabled=true;}
+  function fail(t){ if(msg)msg.innerHTML='<div class="aviso">'+esc(t||'No pudimos eliminar la cuenta. Inténtalo de nuevo.')+'</div>'; if(b){b.textContent='Sí, eliminar';b.disabled=false;} }
+  var p=(typeof sbAuth==='object'&&sbAuth&&sbAuth.auth&&sbAuth.auth.getSession)?sbAuth.auth.getSession():Promise.resolve(null);
+  Promise.resolve(p).then(function(r){
+    var tok=r&&r.data&&r.data.session&&r.data.session.access_token;
+    if(!tok){ fail('Tu sesión no está activa. Vuelve a entrar e inténtalo de nuevo.'); return; }
+    return fetch(API_BASE+'/api/gtc-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion:'eliminar_cuenta',access_token:tok})})
+      .then(function(x){return x.json();})
+      .then(function(j){
+        if(j&&j.ok){
+          try{ if(sbAuth&&sbAuth.auth&&sbAuth.auth.signOut) sbAuth.auth.signOut(); }catch(e){}
+          try{ gtcAuth.salir(); }catch(e){}
+          var o=document.getElementById('ovDel'); if(o)o.remove();
+          try{ toast('Tu cuenta fue eliminada.'); }catch(e){}
+          ir('inicio',{},true);
+        } else { fail(j&&j.msg); }
+      });
+  }).catch(function(){ fail('No hay conexión. Inténtalo de nuevo.'); });
 }
 function vAdmin(){
   if(!gtcAuth.esSuper()){ return backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Sin acceso</h1><p class="page-sub">Esta sección es solo para el superadministrador.</p></div>'+pie(); }
@@ -1996,7 +2032,7 @@ function render(){
   if(bc){ document.body.insertAdjacentHTML('beforeend', bc); }
   pintaNav();
   /* Al ingresar (sesión activa), pedir permiso de ubicación una vez (para ofertas del Club) */
-  try{ if(gtcAuth.cargar() && S.vista!=='acceso' && S.vista!=='splash') pedirUbicacionGTC(); }catch(_){}
+  /* ubicación desactivada: la app no solicita permiso de geolocalización */
   /* Cargas en vivo: stats por jugador en la plantilla, y disciplina en inicio */
   try{ if(S.vista==='equipo') setTimeout(function(){enrichRoster(S.params.id);},60); }catch(_){}
   try{ if(S.vista==='inicio') setTimeout(cargarDisciplinaInicio,60); }catch(_){}
@@ -2034,19 +2070,7 @@ try{
   }
 }catch(e){}
 /* GPS: pedir permiso de ubicación al ingresar (para ofertas del Club al entrar al club) */
-function pedirUbicacionGTC(){
-  try{
-    if(!navigator.geolocation) return;
-    if(window.__geoAsked) return; window.__geoAsked=true;
-    /* Se PREGUNTA UNA SOLA VEZ por instalación (iOS igual recuerda la respuesta y no vuelve a mostrar el diálogo) */
-    try{ if(localStorage.getItem('gtc_geo_done')) return; }catch(_){}
-    try{ localStorage.setItem('gtc_geo_done','1'); }catch(_){}
-    navigator.geolocation.getCurrentPosition(function(pos){
-      try{ localStorage.setItem('gtc_geo_ok','1'); localStorage.setItem('gtc_geo', JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude,t:Date.now()})); }catch(_){}
-      try{ if(typeof track==='function') track('geo_ok',{}); }catch(_){}
-    }, function(){ /* negó o no disponible: no se vuelve a pedir */ }, {enableHighAccuracy:false,timeout:12000,maximumAge:300000});
-  }catch(e){}
-}
+function pedirUbicacionGTC(){ /* desactivado: la app ya no solicita ubicación */ }
 /* Evita que WKWebView desplace TODA la página (header/nav) al abrir el teclado en el login */
 try{
   var _fixScroll=function(){ try{ if(window.scrollY||window.pageYOffset){ window.scrollTo(0,0); } if(document.scrollingElement&&document.scrollingElement.scrollTop){ document.scrollingElement.scrollTop=0; } }catch(_){} };
