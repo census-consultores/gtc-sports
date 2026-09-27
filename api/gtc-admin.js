@@ -103,6 +103,38 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    // ---- ELIMINAR CUENTA (el propio socio, verificado con su token de Supabase Auth) ----
+    if (accion === 'eliminar_cuenta') {
+      const at = String(body.access_token || '');
+      if (!at) return res.status(400).json({ ok: false, msg: 'Falta la sesión.' });
+      // 1) verificar que el token pertenece a quien pide el borrado
+      let uid = null, email = null;
+      try {
+        const ur = await fetch(URL + '/auth/v1/user', { headers: { apikey: KEY, Authorization: 'Bearer ' + at } });
+        if (!ur.ok) throw 0;
+        const uj = await ur.json();
+        uid = uj && uj.id; email = ((uj && uj.email) || '').toLowerCase();
+      } catch (e) {
+        return res.status(401).json({ ok: false, msg: 'Tu sesión no es válida. Vuelve a entrar e inténtalo de nuevo.' });
+      }
+      if (!uid) return res.status(401).json({ ok: false, msg: 'Tu sesión no es válida.' });
+      // 2) borrar los datos personales de contacto del socio (tabla cuentas)
+      try {
+        await sb('cuentas?auth_uid=eq.' + encodeURIComponent(uid), { method: 'DELETE', prefer: 'return=minimal' });
+        if (email) await sb('cuentas?auth_email=eq.' + encodeURIComponent(email), { method: 'DELETE', prefer: 'return=minimal' });
+      } catch (e) { /* si no hay fila, continuar: lo esencial es eliminar la identidad de acceso */ }
+      // 3) borrar la identidad de acceso (Apple / Google / correo) en Supabase Auth
+      try {
+        const dr = await fetch(URL + '/auth/v1/admin/users/' + encodeURIComponent(uid), {
+          method: 'DELETE', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY }
+        });
+        if (!dr.ok && dr.status !== 404) { const t = await dr.text(); throw { status: dr.status, data: t }; }
+      } catch (e) {
+        return res.status(200).json({ ok: false, msg: 'No pudimos completar la eliminación en este momento. Inténtalo de nuevo en unos minutos.' });
+      }
+      return res.status(200).json({ ok: true });
+    }
+
     // resto de acciones requieren token
     const sess = readToken(body.token);
     if (!sess) return res.status(401).json({ ok: false, msg: 'Sesión expirada. Vuelve a entrar.' });
