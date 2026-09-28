@@ -234,6 +234,27 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    if (accion === 'partido_add') {
+      const row = { tor: body.tor || 'olimpiadas2026', tipo: body.tipo || 'vs', gl: null, gv: null, estado: 'pre' };
+      ['disciplina', 'cat', 'fase', 'fecha', 'hora', 'sede', 'local_id', 'visita_id'].forEach(k => {
+        if (body[k] != null && String(body[k]) !== '') row[k] = body[k];
+      });
+      if (!row.disciplina || !row.fecha || !row.local_id || !row.visita_id)
+        return res.status(400).json({ ok: false, msg: 'Faltan datos: disciplina, fecha y ambos equipos.' });
+      if (row.local_id === row.visita_id)
+        return res.status(400).json({ ok: false, msg: 'El equipo local y el visitante no pueden ser el mismo.' });
+      // id correlativo pXXXX (a partir del mayor existente); si no se puede, uno único por tiempo
+      let id = 'p' + Date.now().toString(36);
+      try {
+        const ex = await sb('partidos?select=id&id=like.p*&order=id.desc&limit=1');
+        if (ex && ex[0] && /^p\d+$/.test(ex[0].id))
+          id = 'p' + String(parseInt(ex[0].id.slice(1), 10) + 1).padStart(4, '0');
+      } catch (e) { /* usa el id por tiempo */ }
+      row.id = id;
+      const r = await sb('partidos', { method: 'POST', body: JSON.stringify(row) });
+      return res.status(200).json({ ok: true, partido: (r || [])[0] });
+    }
+
     if (accion === 'jugador_add') {
       const row = {
         equipo_id: body.equipo_id, nombre: String(body.nombre || '').trim(),
