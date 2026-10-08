@@ -5,6 +5,9 @@
 //   login            {correo, clave}                       -> {ok, token, nombre, rol, correo}
 //   resultado        {token, partido_id, gl, gv, goles[], tarjetas[]}
 //   partido_edit     {token, partido_id, fecha, hora, sede, local_id, visita_id}
+//   torneo_add       {token, nombre, disciplina, desde, hasta}   (campeonato de un deporte)
+//   torneo_edit      {token, id, nombre, desde, hasta, estado}
+//   equipo_add       {token, tor, nombre}
 //   jugador_add      {token, equipo_id, nombre, num, socio, cedula, invitado}
 //   jugador_edit     {token, id, ...campos}
 //   jugador_del      {token, id}
@@ -253,6 +256,52 @@ export default async function handler(req, res) {
       row.id = id;
       const r = await sb('partidos', { method: 'POST', body: JSON.stringify(row) });
       return res.status(200).json({ ok: true, partido: (r || [])[0] });
+    }
+
+    // ---- CAMPEONATOS INDIVIDUALES (un deporte, nombre libre) ----
+    const CAMP_DISC = ['futbol', 'padel', 'tenis', 'pickleball', 'beachvolley'];
+    const slug = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+    const fechaOk = f => /^\d{4}-\d{2}-\d{2}$/.test(String(f || ''));
+
+    if (accion === 'torneo_add') {
+      const nombre = String(body.nombre || '').trim().slice(0, 60);
+      const disciplina = String(body.disciplina || '');
+      if (nombre.length < 3) return res.status(400).json({ ok: false, msg: 'Escribe el nombre del campeonato.' });
+      if (CAMP_DISC.indexOf(disciplina) < 0) return res.status(400).json({ ok: false, msg: 'Deporte no válido.' });
+      if (!fechaOk(body.desde)) return res.status(400).json({ ok: false, msg: 'Falta la fecha de inicio.' });
+      const row = {
+        id: 'c-' + (slug(nombre) || 'campeonato') + '-' + Date.now().toString(36).slice(-5),
+        nombre, disciplina, estado: 'curso', desde: body.desde,
+        hasta: fechaOk(body.hasta) ? body.hasta : body.desde, creado_por: sess.c
+      };
+      const r = await sb('torneos', { method: 'POST', body: JSON.stringify(row) });
+      return res.status(200).json({ ok: true, torneo: (r || [])[0] || row });
+    }
+
+    if (accion === 'torneo_edit') {
+      const id = String(body.id || '');
+      if (!id || id === 'olimpiadas2026') return res.status(400).json({ ok: false, msg: 'Campeonato no válido.' });
+      const patch = {};
+      if (body.nombre && String(body.nombre).trim().length >= 3) patch.nombre = String(body.nombre).trim().slice(0, 60);
+      if (fechaOk(body.desde)) patch.desde = body.desde;
+      if (fechaOk(body.hasta)) patch.hasta = body.hasta;
+      if (body.estado === 'curso' || body.estado === 'finalizado') patch.estado = body.estado;
+      await sb('torneos?id=eq.' + encodeURIComponent(id), { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(patch) });
+      return res.status(200).json({ ok: true });
+    }
+
+    if (accion === 'equipo_add') {
+      const tor = String(body.tor || '');
+      const nombre = String(body.nombre || '').trim().slice(0, 50);
+      if (!tor || tor === 'olimpiadas2026') return res.status(400).json({ ok: false, msg: 'Campeonato no válido.' });
+      if (nombre.length < 2) return res.status(400).json({ ok: false, msg: 'Escribe el nombre del equipo.' });
+      const t = await sb('torneos?select=id&id=eq.' + encodeURIComponent(tor));
+      if (!t || !t.length) return res.status(404).json({ ok: false, msg: 'El campeonato no existe.' });
+      const id = tor + '-' + (slug(nombre) || 'equipo');
+      const ex = await sb('equipos?select=id&id=eq.' + encodeURIComponent(id));
+      if (ex && ex.length) return res.status(400).json({ ok: false, msg: 'Ya existe un equipo con ese nombre en este campeonato.' });
+      const r = await sb('equipos', { method: 'POST', body: JSON.stringify({ id, tor, cat: 'GEN', nombre: nombre.toUpperCase() }) });
+      return res.status(200).json({ ok: true, equipo: (r || [])[0] });
     }
 
     if (accion === 'jugador_add') {
