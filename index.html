@@ -1067,13 +1067,16 @@ function setF(k,v){var p=Object.assign({},S.params);p[k]=v;S.vista=S.vista;S.par
    Fase 1: posiciones de grupos por deporte y categoría con el puntaje del reglamento (PTS_REG).
    Fase 2: tabla general por categoría, 30/20/15/10 según 1o-4o de cada deporte. */
 /* Puntaje de tabla por deporte, EXACTAMENTE como dice el reglamento de las Olimpiadas 2026.
-   Deportes sin puntaje escrito en el reglamento devuelven null: su tabla se ordena por partidos
-   ganados y NO muestra puntos (pendiente de que Deportes lo defina). */
+   Tenis (y Ping Pong) no tienen puntaje de tabla escrito en el reglamento: devuelven null, su tabla
+   se ordena por partidos ganados y NO muestra puntos (pendiente de que Deportes lo defina). */
 var PTS_REG={
   futbol:{txt:'Ganado 3 puntos · empatado 1 · perdido 0 (reglamento de Fútbol, literal b).',f:function(a,b){return a>b?[3,0]:a<b?[0,3]:[1,1];}},
   padel:{txt:'Partido ganado 2 puntos · partido perdido 1 punto (reglamento de Pádel, literal p).',f:function(a,b){return a>b?[2,1]:a<b?[1,2]:null;}},
   pickleball:{txt:'Victoria 2-0: 3 puntos al ganador y 0 al perdedor · victoria 2-1: 2 al ganador y 1 al perdedor (reglamento de Pickleball).',f:function(a,b){if(a===b)return null;var w=a>b,l=w?b:a;var pw=(l===0)?3:2,pl=(l===0)?0:1;return w?[pw,pl]:[pl,pw];}},
-  basquet:{txt:'Partido ganado 2 puntos · perdido 0 (reglamento de Baloncesto, literal b).',f:function(a,b){return a>b?[2,0]:a<b?[0,2]:null;}}
+  basquet:{txt:'Partido ganado 2 puntos · perdido 0 (reglamento de Baloncesto, literal b).',f:function(a,b){return a>b?[2,0]:a<b?[0,2]:null;}},
+  beachtenis:{txt:'Partido ganado 2 puntos · partido perdido 1 punto (reglamento de Beach Tenis, literal M).',f:function(a,b){return a>b?[2,1]:a<b?[1,2]:null;}},
+  beachvolley:{txt:'Partido ganado 2 puntos · perdido 0; quien no se presenta pierde 2-0 en sets y 0 puntos (reglamento de Beach Volley, literales p y q).',f:function(a,b){return a>b?[2,0]:a<b?[0,2]:null;}},
+  cuarenta:{txt:'1 punto a la pareja ganadora (también por W.O.) · 0 a la perdedora (reglamento de Cuarenta).',f:function(a,b){return a>b?[1,0]:a<b?[0,1]:null;}}
 };
 function ptsRegla(disc){return PTS_REG[disc]||null;}
 function notaPuntaje(disc){var r=ptsRegla(disc);return r?r.txt:'El reglamento no establece puntaje de tabla para este deporte: se ordena por partidos ganados hasta que la Comisión de Deportes lo defina.';}
