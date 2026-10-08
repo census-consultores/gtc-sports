@@ -1064,8 +1064,27 @@ function setF(k,v){var p=Object.assign({},S.params);p[k]=v;S.vista=S.vista;S.par
 /* ---- Olimpiadas: Tabla (sistema de puntos, sin inventar) ---- */
 
 /* ============ TABLA AUTOMÁTICA (posiciones por deporte + general) ============
-   Fase 1: posiciones de grupos 3/1/0 por deporte y categoría (auto por resultados).
+   Fase 1: posiciones de grupos por deporte y categoría con el puntaje del reglamento (PTS_REG).
    Fase 2: tabla general por categoría, 30/20/15/10 según 1o-4o de cada deporte. */
+/* Puntaje de tabla por deporte, EXACTAMENTE como dice el reglamento de las Olimpiadas 2026.
+   Deportes sin puntaje escrito en el reglamento devuelven null: su tabla se ordena por partidos
+   ganados y NO muestra puntos (pendiente de que Deportes lo defina). */
+var PTS_REG={
+  futbol:{txt:'Ganado 3 puntos · empatado 1 · perdido 0 (reglamento de Fútbol, literal b).',f:function(a,b){return a>b?[3,0]:a<b?[0,3]:[1,1];}},
+  padel:{txt:'Partido ganado 2 puntos · partido perdido 1 punto (reglamento de Pádel, literal p).',f:function(a,b){return a>b?[2,1]:a<b?[1,2]:null;}},
+  pickleball:{txt:'Victoria 2-0: 3 puntos al ganador y 0 al perdedor · victoria 2-1: 2 al ganador y 1 al perdedor (reglamento de Pickleball).',f:function(a,b){if(a===b)return null;var w=a>b,l=w?b:a;var pw=(l===0)?3:2,pl=(l===0)?0:1;return w?[pw,pl]:[pl,pw];}},
+  basquet:{txt:'Partido ganado 2 puntos · perdido 0 (reglamento de Baloncesto, literal b).',f:function(a,b){return a>b?[2,0]:a<b?[0,2]:null;}}
+};
+function ptsRegla(disc){return PTS_REG[disc]||null;}
+function notaPuntaje(disc){var r=ptsRegla(disc);return r?r.txt:'El reglamento no establece puntaje de tabla para este deporte: se ordena por partidos ganados hasta que la Comisión de Deportes lo defina.';}
+function ordenarTabla(rows,disc){var r=ptsRegla(disc);
+  rows.sort(function(a,b){return (r?(b.pts-a.pts):(b.g-a.g))||((b.gf-b.gc)-(a.gf-a.gc))||(b.gf-a.gf)||String(a.n).localeCompare(String(b.n));});
+  return rows;}
+function sumarPartido(L,V,gl,gv,disc){
+  L.pj++;V.pj++;L.gf+=gl;L.gc+=gv;V.gf+=gv;V.gc+=gl;
+  if(gl>gv){L.g++;V.p++;}else if(gl<gv){V.g++;L.p++;}else{L.e++;V.e++;}
+  var r=ptsRegla(disc); if(r){var p=r.f(gl,gv); if(p){L.pts+=p[0];V.pts+=p[1];}}
+}
 function esGrupos(p){return !p.fase||p.fase==='grupos';}
 function standings(disc,cat){
   var all=DATA.partidos.map(pOli).filter(function(p){return p.tipo!=='gen'&&p.disc===disc&&p.cat===cat&&esGrupos(p)&&p.home.id&&p.away.id;});
@@ -1073,15 +1092,9 @@ function standings(disc,cat){
   function ini(id,n){if(!T[id])T[id]={id:id,n:n,pj:0,g:0,e:0,p:0,gf:0,gc:0,pts:0};return T[id];}
   all.forEach(function(m){ini(m.home.id,m.home.n);ini(m.away.id,m.away.n);});
   all.filter(function(m){return m.gl!=null&&m.gv!=null;}).forEach(function(m){
-    var L=T[m.home.id],V=T[m.away.id];
-    L.pj++;V.pj++;L.gf+=m.gl;L.gc+=m.gv;V.gf+=m.gv;V.gc+=m.gl;
-    if(m.gl>m.gv){L.g++;V.p++;L.pts+=3;}
-    else if(m.gl<m.gv){V.g++;L.p++;V.pts+=3;}
-    else{L.e++;V.e++;L.pts++;V.pts++;}
+    sumarPartido(T[m.home.id],T[m.away.id],m.gl,m.gv,disc);
   });
-  var rows=Object.keys(T).map(function(k){return T[k];});
-  rows.sort(function(a,b){return b.pts-a.pts||((b.gf-b.gc)-(a.gf-a.gc))||(b.gf-a.gf)||a.n.localeCompare(b.n);});
-  return rows;
+  return ordenarTabla(Object.keys(T).map(function(k){return T[k];}),disc);
 }
 function placeSport(disc,cat){
   var msAll=DATA.partidos.filter(function(p){return p.d===disc&&p.cat===cat;});
@@ -1365,7 +1378,7 @@ function vEquipo(){
   if(rec.length){
     h+=secHead('Estadísticas · Olimpiadas 2026');
     h+='<div class="card" style="overflow-x:auto"><table class="st"><thead><tr><th class="l">Deporte</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>Pos</th><th>Pts</th></tr></thead><tbody>'+
-      rec.map(function(r){var dn=(DIS[r.disc]&&DIS[r.disc].n)||r.disc;return '<tr><td class="l"><span class="en">'+esc(dn)+'</span></td><td>'+r.pj+'</td><td>'+r.g+'</td><td>'+r.e+'</td><td>'+r.p+'</td><td>'+(r.pos>0?r.pos+'°':'—')+'</td><td class="pts">'+r.pts+'</td></tr>';}).join('')+
+      rec.map(function(r){var dn=(DIS[r.disc]&&DIS[r.disc].n)||r.disc;return '<tr><td class="l"><span class="en">'+esc(dn)+'</span></td><td>'+r.pj+'</td><td>'+r.g+'</td><td>'+r.e+'</td><td>'+r.p+'</td><td>'+(r.pos>0?r.pos+'°':'—')+'</td><td class="pts">'+(ptsRegla(r.disc)?r.pts:'—')+'</td></tr>';}).join('')+
       '</tbody></table></div>';
     h+='<div class="nota" style="margin-top:8px">Se actualiza con cada resultado que registra la Comisión de Deportes.</div>';
   }
@@ -1512,10 +1525,12 @@ function vDisciplina(){
       var rows=standings(d.id,cid);
       h+='<h2 class="sec">'+esc(CAT[cid]?CAT[cid].n:cid)+'</h2>';
       if(!rows.length||rows.every(function(r){return r.pj===0;})){ h+='<div class="nota" style="margin-bottom:10px">Aún sin partidos jugados en esta categoría.</div>'; return; }
-      h+='<div class="card" style="margin-bottom:12px;overflow-x:auto"><table class="st"><thead><tr><th class="pos"></th><th class="l">Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>Dif</th><th>Pts</th></tr></thead><tbody>'+
-        rows.map(function(r,i){var dif=r.gf-r.gc;return '<tr class="'+(i<2?'cl':'')+'"><td class="pos">'+(i+1)+'</td><td class="l"><span class="en">'+esc(titulo(r.n))+'</span></td><td>'+r.pj+'</td><td>'+r.g+'</td><td>'+r.e+'</td><td>'+r.p+'</td><td>'+(dif>0?'+':'')+dif+'</td><td class="pts">'+r.pts+'</td></tr>';}).join('')+
+      var _cp=!!ptsRegla(d.id),_ce=(d.id==='futbol');
+      h+='<div class="card" style="margin-bottom:12px;overflow-x:auto"><table class="st"><thead><tr><th class="pos"></th><th class="l">Equipo</th><th>PJ</th><th>G</th>'+(_ce?'<th>E</th>':'')+'<th>P</th><th>Dif</th>'+(_cp?'<th>Pts</th>':'')+'</tr></thead><tbody>'+
+        rows.map(function(r,i){var dif=r.gf-r.gc;return '<tr class="'+(i<2?'cl':'')+'"><td class="pos">'+(i+1)+'</td><td class="l"><span class="en">'+esc(titulo(r.n))+'</span></td><td>'+r.pj+'</td><td>'+r.g+'</td>'+(_ce?'<td>'+r.e+'</td>':'')+'<td>'+r.p+'</td><td>'+(dif>0?'+':'')+dif+'</td>'+(_cp?'<td class="pts">'+r.pts+'</td>':'')+'</tr>';}).join('')+
         '</tbody></table></div>';
     });
+    if(pcats.length) h+='<div class="nota" style="margin-top:4px">'+esc(notaPuntaje(d.id))+'</div>';
   } else {
     parts.sort(function(a,b){return(a.f+a.h).localeCompare(b.f+b.h);});
     var grp={},ord=[]; parts.forEach(function(p){if(!grp[p.f]){grp[p.f]=[];ord.push(p.f);}grp[p.f].push(p);});
@@ -2380,22 +2395,18 @@ function campStandings(tid){
     if(!T[m.home.id])T[m.home.id]={id:m.home.id,n:m.home.n,pj:0,g:0,e:0,p:0,gf:0,gc:0,pts:0};
     if(!T[m.away.id])T[m.away.id]={id:m.away.id,n:m.away.n,pj:0,g:0,e:0,p:0,gf:0,gc:0,pts:0};
     if(m.gl==null||m.gv==null)return;
-    var L=T[m.home.id],V=T[m.away.id];
-    L.pj++;V.pj++;L.gf+=m.gl;L.gc+=m.gv;V.gf+=m.gv;V.gc+=m.gl;
-    if(m.gl>m.gv){L.g++;V.p++;L.pts+=3;} else if(m.gl<m.gv){V.g++;L.p++;V.pts+=3;} else {L.e++;V.e++;L.pts++;V.pts++;}
+    sumarPartido(T[m.home.id],T[m.away.id],m.gl,m.gv,TOR[tid]&&TOR[tid].disc);
   });
-  var rows=Object.keys(T).map(function(k){return T[k];});
-  rows.sort(function(a,b){return b.pts-a.pts||((b.gf-b.gc)-(a.gf-a.gc))||(b.gf-a.gf)||String(a.n).localeCompare(String(b.n));});
-  return rows;
+  return ordenarTabla(Object.keys(T).map(function(k){return T[k];}),TOR[tid]&&TOR[tid].disc);
 }
 function campTablaHTML(tid,corta){
   var rows=campStandings(tid);
   if(!rows.length) return '<div class="card"><div style="padding:16px">'+empty('Aún no hay equipos','La tabla aparece cuando Deportes inscriba los equipos.')+'</div></div>';
-  var disc=TOR[tid]&&TOR[tid].disc, unidad=(disc==='futbol')?'Goles':'Puntos';
-  return '<div class="card" style="overflow-x:auto"><table class="st"><thead><tr><th class="pos"></th><th class="l">Equipo</th><th>Pts</th><th>PJ</th><th>G</th><th>E</th><th>P</th>'+(corta?'':'<th title="'+unidad+' a favor">F</th><th title="'+unidad+' en contra">C</th>')+'<th>Dif</th></tr></thead><tbody>'+
+  var disc=TOR[tid]&&TOR[tid].disc, unidad=(disc==='futbol')?'Goles':'Tantos', conPts=!!ptsRegla(disc), conE=(disc==='futbol');
+  return '<div class="card" style="overflow-x:auto"><table class="st"><thead><tr><th class="pos"></th><th class="l">Equipo</th>'+(conPts?'<th>Pts</th>':'')+'<th>PJ</th><th>G</th>'+(conE?'<th>E</th>':'')+'<th>P</th>'+(corta?'':'<th title="'+unidad+' a favor">F</th><th title="'+unidad+' en contra">C</th>')+'<th>Dif</th></tr></thead><tbody>'+
     rows.map(function(r,i){var dif=r.gf-r.gc;var e=EQ[r.id];
       return '<tr class="'+(i===0&&r.pj>0?'cl':'')+'"><td class="pos">'+(i+1)+'</td><td class="l"><span class="en">'+(e?badge(e,22):'')+' '+esc(titulo(r.n))+'</span></td>'+
-        '<td class="pts">'+r.pts+'</td><td>'+r.pj+'</td><td>'+r.g+'</td><td>'+r.e+'</td><td>'+r.p+'</td>'+(corta?'':'<td>'+r.gf+'</td><td>'+r.gc+'</td>')+'<td>'+(dif>0?'+':'')+dif+'</td></tr>';}).join('')+
+        (conPts?'<td class="pts">'+r.pts+'</td>':'')+'<td>'+r.pj+'</td><td>'+r.g+'</td>'+(conE?'<td>'+r.e+'</td>':'')+'<td>'+r.p+'</td>'+(corta?'':'<td>'+r.gf+'</td><td>'+r.gc+'</td>')+'<td>'+(dif>0?'+':'')+dif+'</td></tr>';}).join('')+
     '</tbody></table></div>';
 }
 function campGolHTML(tid,limit){
@@ -2427,7 +2438,7 @@ function cTabla(t){
   var llaves=campPartidos(t.id).filter(function(p){return !esGrupos(p);}).sort(function(a,b){return (a.f+a.h).localeCompare(b.f+b.h);});
   if(llaves.length){ h+=secHead('Llaves finales'); h+=llaves.map(matchCard).join(''); }
   if(t.disc==='futbol'){var g=campGolHTML(t.id,20); if(g){h+=secHead('Goleadores');h+=g;}}
-  h+='<div class="nota" style="margin-top:12px">Victoria <b>3</b> puntos · empate <b>1</b> · derrota <b>0</b>. Desempate por diferencia y luego por más '+(t.disc==='futbol'?'goles':'puntos')+' a favor. Se calcula sola con cada resultado que registra Deportes.</div>';
+  h+='<div class="nota" style="margin-top:12px">'+esc(notaPuntaje(t.disc))+' Se calcula sola con cada resultado que registra Deportes.</div>';
   return h;
 }
 function cEquipos(t){
