@@ -8,6 +8,7 @@
 //   torneo_add       {token, nombre, disciplina, desde, hasta}   (campeonato de un deporte)
 //   torneo_edit      {token, id, nombre, desde, hasta, estado}
 //   equipo_add       {token, tor, nombre}
+//   prueba_guardar   {token, disciplina: natacion|carrera, cat, filas:[{prueba, posicion, equipo_id}]}
 //   jugador_add      {token, equipo_id, nombre, num, socio, cedula, invitado}
 //   jugador_edit     {token, id, ...campos}
 //   jugador_del      {token, id}
@@ -302,6 +303,28 @@ export default async function handler(req, res) {
       if (ex && ex.length) return res.status(400).json({ ok: false, msg: 'Ya existe un equipo con ese nombre en este campeonato.' });
       const r = await sb('equipos', { method: 'POST', body: JSON.stringify({ id, tor, cat: 'GEN', nombre: nombre.toUpperCase() }) });
       return res.status(200).json({ ok: true, equipo: (r || [])[0] });
+    }
+
+    // ---- NATACIÓN / CARRERA: puestos por prueba (reemplaza los de esa disciplina y categoría) ----
+    if (accion === 'prueba_guardar') {
+      const disc = String(body.disciplina || '');
+      const cat = String(body.cat || '');
+      if (['natacion', 'carrera'].indexOf(disc) < 0) return res.status(400).json({ ok: false, msg: 'Disciplina no válida.' });
+      if (!/^[A-Z0-9]{2,4}$/.test(cat)) return res.status(400).json({ ok: false, msg: 'Categoría no válida.' });
+      const filas = (Array.isArray(body.filas) ? body.filas : [])
+        .map(f => ({ tor: 'olimpiadas2026', disciplina: disc, cat, prueba: String(f.prueba || '').slice(0, 12), posicion: parseInt(f.posicion, 10), equipo_id: String(f.equipo_id || '') }))
+        .filter(f => f.prueba && f.posicion >= 1 && f.posicion <= 6 && f.equipo_id);
+      const ids = [...new Set(filas.map(f => f.equipo_id))];
+      if (ids.length) {
+        const eqs = await sb('equipos?select=id,cat&id=in.(' + ids.map(encodeURIComponent).join(',') + ')');
+        const ok = new Set((eqs || []).filter(e => e.cat === cat).map(e => e.id));
+        if (ids.some(id => !ok.has(id))) return res.status(400).json({ ok: false, msg: 'Hay equipos que no pertenecen a esta categoría.' });
+      }
+      const claves = new Set();
+      for (const f of filas) { const k = f.prueba + '|' + f.posicion; if (claves.has(k)) return res.status(400).json({ ok: false, msg: 'Un puesto está repetido en la misma prueba.' }); claves.add(k); }
+      await sb('resultados_prueba?tor=eq.olimpiadas2026&disciplina=eq.' + disc + '&cat=eq.' + cat, { method: 'DELETE', prefer: 'return=minimal' });
+      if (filas.length) await sb('resultados_prueba', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(filas) });
+      return res.status(200).json({ ok: true, n: filas.length });
     }
 
     if (accion === 'jugador_add') {

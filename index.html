@@ -1067,8 +1067,8 @@ function setF(k,v){var p=Object.assign({},S.params);p[k]=v;S.vista=S.vista;S.par
    Fase 1: posiciones de grupos por deporte y categoría con el puntaje del reglamento (PTS_REG).
    Fase 2: tabla general por categoría, 30/20/15/10 según 1o-4o de cada deporte. */
 /* Puntaje de tabla por deporte, EXACTAMENTE como dice el reglamento de las Olimpiadas 2026.
-   Tenis (y Ping Pong) no tienen puntaje de tabla escrito en el reglamento: devuelven null, su tabla
-   se ordena por partidos ganados y NO muestra puntos (pendiente de que Deportes lo defina). */
+   Tenis y Ping Pong no usan puntos de tabla: se miden por series ganadas (formato al mejor de 3
+   partidos) y del puesto final sale el 30/20/15/10 de la tabla general. */
 var PTS_REG={
   futbol:{txt:'Ganado 3 puntos · empatado 1 · perdido 0 (reglamento de Fútbol, literal b).',f:function(a,b){return a>b?[3,0]:a<b?[0,3]:[1,1];}},
   padel:{txt:'Partido ganado 2 puntos · partido perdido 1 punto (reglamento de Pádel, literal p).',f:function(a,b){return a>b?[2,1]:a<b?[1,2]:null;}},
@@ -1079,7 +1079,9 @@ var PTS_REG={
   cuarenta:{txt:'1 punto a la pareja ganadora (también por W.O.) · 0 a la perdedora (reglamento de Cuarenta).',f:function(a,b){return a>b?[1,0]:a<b?[0,1]:null;}}
 };
 function ptsRegla(disc){return PTS_REG[disc]||null;}
-function notaPuntaje(disc){var r=ptsRegla(disc);return r?r.txt:'El reglamento no establece puntaje de tabla para este deporte: se ordena por partidos ganados hasta que la Comisión de Deportes lo defina.';}
+function notaPuntaje(disc){var r=ptsRegla(disc);if(r)return r.txt;
+  if(disc==='tenis'||disc==='pingpong') return 'Se mide por series ganadas: cada encuentro es al mejor de 3 partidos, 2 singles y 1 dobles (literal a); a igualdad de series, por diferencia de partidos. El 3° y 4° se definen en semifinales cuando las hay (literal g). Del 1° al 4° reciben 30·20·15·10 en la tabla general.';
+  return 'Se ordena por partidos ganados.';}
 function ordenarTabla(rows,disc){var r=ptsRegla(disc);
   rows.sort(function(a,b){return (r?(b.pts-a.pts):(b.g-a.g))||((b.gf-b.gc)-(a.gf-a.gc))||(b.gf-a.gf)||String(a.n).localeCompare(String(b.n));});
   return rows;}
@@ -1123,8 +1125,8 @@ function placeSport(disc,cat){
 function generalTable(cat){
   var discs={}; DATA.partidos.forEach(function(p){if(p.cat===cat)discs[p.d]=1;});
   var teams={}, sports=[], prov=false;
-  function add(tid,idx){
-    var pts=DATA.puntos[String(idx+1)]||0;
+  function add(tid,idx,ptsOv){
+    var pts=(ptsOv!=null)?ptsOv:(DATA.puntos[String(idx+1)]||0);
     if(!teams[tid]){var e=EQ[tid]||{};teams[tid]={id:tid,n:e.n||tid,pts:0,c1:0,c2:0,c3:0};}
     teams[tid].pts+=pts;
     if(idx===0)teams[tid].c1++;else if(idx===1)teams[tid].c2++;else if(idx===2)teams[tid].c3++;
@@ -1143,6 +1145,13 @@ function generalTable(cat){
       if(st.length){ prov=true; sports.push({disc:disc,estado:'enjuego'}); st.slice(0,4).forEach(function(r,idx){ add(r.id,idx); }); }
       else sports.push({disc:disc,estado:'sin'});
     }
+  });
+  ['natacion','carrera'].forEach(function(disc){
+    if(!DIS[disc]||(DIS[disc].cats||[]).indexOf(cat)<0) return;
+    var pl=pruebaPlace(disc,cat);
+    if(pl.estado==='sin'){ sports.push({disc:disc,estado:'sin'}); return; }
+    sports.push({disc:disc,estado:pl.empates.length?'manual':'definido'});
+    pl.premios.forEach(function(x){ add(x.id,x.idx,x.pts); });
   });
   var rows=Object.keys(teams).map(function(k){return teams[k];});
   rows.sort(function(a,b){return b.pts-a.pts||b.c1-a.c1||b.c2-a.c2||b.c3-a.c3||a.n.localeCompare(b.n);});
@@ -1163,6 +1172,11 @@ function generalTableLive(cat){
       if(!teams[r.id]){var e=EQ[r.id]||{};teams[r.id]={id:r.id,n:e.n||r.n,pts:0,d:0};}
       teams[r.id].pts+=pts; teams[r.id].d++;
     });
+  });
+  ['natacion','carrera'].forEach(function(disc){
+    if(!DIS[disc]||(DIS[disc].cats||[]).indexOf(cat)<0) return;
+    var pl=pruebaPlace(disc,cat); if(pl.estado==='sin') return; nsports++;
+    pl.premios.forEach(function(x){ if(!teams[x.id]){var e=EQ[x.id]||{};teams[x.id]={id:x.id,n:e.n||x.id,pts:0,d:0};} teams[x.id].pts+=x.pts; teams[x.id].d++; });
   });
   var rows=Object.keys(teams).map(function(k){return teams[k];});
   rows.sort(function(a,b){return b.pts-a.pts||a.n.localeCompare(b.n);});
@@ -1521,6 +1535,9 @@ function vDisciplina(){
     if(sec.length){ h+='<div class="card">'+sec.map(function(s){return '<details class="acc"><summary>'+esc(s.t)+'</summary><div class="bd">'+regParrafos(s.p)+'</div></details>';}).join('')+'</div>'; }
     else h+='<div class="nota">Las reglas específicas de esta disciplina se publicarán con el reglamento oficial.</div>';
     h+='<div style="margin-top:12px" class="nota">Categorías: '+d.cats.map(function(c){return esc(CAT[c]?CAT[c].n:c);}).join(' · ')+'</div>';
+  } else if(seg==='pos' && (d.id==='natacion'||d.id==='carrera')){
+    d.cats.forEach(function(cid){ h+='<h2 class="sec">'+esc(CAT[cid]?CAT[cid].n:cid)+'</h2>'+pruebaTablaHTML(d.id,cid); });
+    h+='<div class="nota" style="margin-top:4px">'+esc(notaPrueba(d.id))+'</div>';
   } else if(seg==='pos'){
     var pcats=d.cats.filter(function(cid){return DATA.partidos.some(function(p){return p.d===d.id&&p.cat===cid&&p.tipo!=='gen';});});
     if(!pcats.length){ h+='<div class="nota">Este deporte se define por evento o por tiempos, no por tabla de posiciones. El puntaje lo cierra la Comisión de Deportes.</div>'; }
@@ -2332,7 +2349,8 @@ function hydrate(){
     sbGet('partidos?select=id,tor,disciplina,cat,fase,fecha,hora,sede,tipo,local_id,visita_id,gl,gv,estado&limit=3000'),
     sbGet('goles?select=partido_id,jugador_id,equipo_id,cantidad&limit=5000'),
     sbGet('tarjetas?select=partido_id,jugador_id,equipo_id,tipo&limit=5000'),
-    sbGet('torneos?select=id,nombre,disciplina,estado,desde,hasta&order=created_at').catch(function(){return [];})
+    sbGet('torneos?select=id,nombre,disciplina,estado,desde,hasta&order=created_at').catch(function(){return [];}),
+    sbGet('resultados_prueba?select=disciplina,cat,prueba,posicion,equipo_id&tor=eq.olimpiadas2026&limit=2000').catch(function(){return [];})
   ]).then(function(res){
     var eqs=res[0],jus=res[1],pts=res[2];
     if(eqs&&eqs.length){
@@ -2352,6 +2370,7 @@ function hydrate(){
     }
     DATA.goles=res[3]||[];DATA.tarjetas=res[4]||[];
     CAMP.torneos=Array.isArray(res[5])?res[5]:[];
+    DATA.pruebas=Array.isArray(res[6])?res[6]:[];
     rebuildIndexes();campRegistrar();buildGolIndex();
     GTC_HYDRATED=true;
     render();
@@ -2567,6 +2586,93 @@ function campPartidoAdd(){
   });
 }
 
+
+/* ==================================================================
+   NATACIÓN Y CARRERA: puestos por equipo calculados con el reglamento
+   - Natación (literal g): individual 1°7·2°5·3°4·4°3·5°2·6°1; grupal 1°14·2°10·3°8·4°6·5°4·6°2.
+     Todos los participantes puntúan, aun del mismo equipo (literal d). Suma por equipo -> puesto.
+   - Carrera: puesto final por equipo (1° a 3° por el mejor representante; 4° a 6° por orden de
+     llegada de los equipos) con el "Sistema de puntuación para la carrera": 30·20·15·10·6·4.
+   Deportes registra los puestos en el Panel; la app calcula y suma sola.
+   ================================================================== */
+var NAT_IND=[7,5,4,3,2,1], NAT_GRP=[14,10,8,6,4,2], CAR_PTS=[30,20,15,10,6,4];
+function natPruebas(cat){
+  if(['I1','I2','I3'].indexOf(cat)>=0) return [['25L','25 m libre (con gusano o tabla)','ind'],['R4x25','Relevo 4x25 m libre (con gusano o tabla)','grp']];
+  if(cat==='I4') return [['25L','25 m libre','ind'],['R4x25','Relevo 4x25 m libre','grp']];
+  return [['25L','25 m libre','ind'],['50L','50 m libre','ind'],['R4x50','Relevo 4x50 m libre','grp']];
+}
+function pruebasDe(disc,cat){ return disc==='natacion'?natPruebas(cat):(disc==='carrera'?[['FINAL','Ubicación final por equipo','car']]:[]); }
+function filasPrueba(disc,cat){ return (DATA.pruebas||[]).filter(function(r){return r.disciplina===disc&&r.cat===cat;}); }
+/* Devuelve {estado:'sin'|'definido', tabla:[{id,n,pts,pos}], premios:[{id,idx,pts}], empates:[ids]} */
+function pruebaPlace(disc,cat){
+  var rows=filasPrueba(disc,cat); if(!rows.length) return {estado:'sin',tabla:[],premios:[],empates:[]};
+  if(disc==='carrera'){
+    var ord=rows.slice().sort(function(a,b){return a.posicion-b.posicion;});
+    var tabla=ord.map(function(r){var e=EQ[r.equipo_id]||{};return {id:r.equipo_id,n:e.n||r.equipo_id,pts:CAR_PTS[r.posicion-1]||0,pos:r.posicion};});
+    return {estado:'definido',tabla:tabla,premios:tabla.map(function(x){return {id:x.id,idx:x.pos-1,pts:x.pts};}),empates:[]};
+  }
+  var tipo={};natPruebas(cat).forEach(function(p){tipo[p[0]]=p[2];});
+  var sum={};
+  rows.forEach(function(r){var t=tipo[r.prueba];if(!t)return;var arr=t==='grp'?NAT_GRP:NAT_IND;sum[r.equipo_id]=(sum[r.equipo_id]||0)+(arr[r.posicion-1]||0);});
+  var tabla=Object.keys(sum).map(function(id){var e=EQ[id]||{};return {id:id,n:e.n||id,pts:sum[id]};}).sort(function(a,b){return b.pts-a.pts||String(a.n).localeCompare(String(b.n));});
+  var premios=[],empates=[],i=0;
+  while(i<tabla.length){var j=i;while(j+1<tabla.length&&tabla[j+1].pts===tabla[i].pts)j++;
+    for(var k=i;k<=j;k++)tabla[k].pos=i+1;
+    if(i<4){ if(j===i) premios.push({id:tabla[i].id,idx:i,pts:DATA.puntos[String(i+1)]||0}); else for(var k2=i;k2<=j;k2++)empates.push(tabla[k2].id); }
+    i=j+1;}
+  return {estado:'definido',tabla:tabla,premios:premios,empates:empates};
+}
+function pruebaTablaHTML(disc,cat){
+  var pl=pruebaPlace(disc,cat);
+  if(pl.estado==='sin') return '<div class="nota" style="margin-bottom:10px">Aún sin resultados registrados en esta categoría.</div>';
+  var h='<div class="card" style="margin-bottom:10px;overflow-x:auto"><table class="st"><thead><tr><th class="pos"></th><th class="l">Equipo</th><th>'+(disc==='carrera'?'Puesto':'Suma')+'</th><th>Pts tabla</th></tr></thead><tbody>'+
+    pl.tabla.map(function(r){var pr=pl.premios.filter(function(x){return x.id===r.id;})[0];var emp=pl.empates.indexOf(r.id)>=0;
+      return '<tr class="'+(r.pos===1?'cl':'')+'"><td class="pos">'+r.pos+'</td><td class="l"><span class="en">'+esc(titulo(r.n))+'</span></td><td>'+(disc==='carrera'?r.pos+'°':r.pts)+'</td><td class="pts">'+(pr?pr.pts:(emp?'Empate':'—'))+'</td></tr>';}).join('')+
+    '</tbody></table></div>';
+  if(pl.empates.length) h+='<div class="aviso" style="margin-bottom:10px">Hay un empate en los cuatro primeros puestos. El reglamento no fija desempate para esta prueba: lo define la Comisión de Deportes.</div>';
+  return h;
+}
+function notaPrueba(disc){
+  return disc==='natacion'
+    ? 'Natación (literal g): individual 7·5·4·3·2·1 y relevos 14·10·8·6·4·2 del 1° al 6°; todos los participantes puntúan, aun del mismo equipo. La suma por equipo define el puesto y la tabla general da 30·20·15·10 del 1° al 4°.'
+    : 'Carrera: los tres primeros lugares por el mejor representante del equipo que llega a la meta; 4° a 6° por orden de llegada de los equipos. Sistema de puntuación de la carrera: 30·20·15·10·6·4.';
+}
+/* ---------- Panel: registrar puestos de natación y carrera ---------- */
+function depPruebas(){
+  var d=S.params.pd||'natacion', c=S.params.pc||'';
+  var cats=(DIS[d]&&DIS[d].cats)||[];
+  var h='<div class="nota" style="margin:2px 0 12px">Registra los puestos de cada prueba. La app calcula sola los puntos del reglamento y la tabla general.</div>';
+  h+='<div class="seg" style="margin-bottom:10px">'+[['natacion','Natación'],['carrera','Carrera']].map(function(x){return '<button class="'+(d===x[0]?'on':'')+'" onclick="ir(\'deportes\',{seg:\'pruebas\',pd:\''+x[0]+'\',pc:\'\'},true)">'+x[1]+'</button>';}).join('')+'</div>';
+  h+='<div class="chips" style="margin-bottom:12px">'+cats.map(function(cid){var hecho=filasPrueba(d,cid).length>0;return '<button class="chip'+(c===cid?' on':'')+'" onclick="ir(\'deportes\',{seg:\'pruebas\',pd:\''+d+'\',pc:\''+cid+'\'},true)">'+esc(CAT[cid]?CAT[cid].n:cid)+(hecho?' ✓':'')+'</button>';}).join('')+'</div>';
+  if(!c) return h+'<div class="nota">Elige la categoría.</div>';
+  var eqs=DATA.equipos.filter(function(e){return e.cat===c;}).sort(function(a,b){return String(a.n).localeCompare(String(b.n));});
+  var prev={};filasPrueba(d,c).forEach(function(r){prev[r.prueba+'|'+r.posicion]=r.equipo_id;});
+  var opts=function(sel){return '<option value="">—</option>'+eqs.map(function(e){return '<option value="'+e.id+'"'+(sel===e.id?' selected':'')+'>'+esc(titulo(e.n))+'</option>';}).join('');};
+  window.__pr={d:d,c:c};
+  pruebasDe(d,c).forEach(function(pr){
+    var tipoTxt=pr[2]==='grp'?' · relevo (14·10·8·6·4·2)':(pr[2]==='ind'?' · individual (7·5·4·3·2·1)':' · 30·20·15·10·6·4');
+    h+='<div class="card" style="padding:14px;margin-bottom:10px"><b>'+esc(pr[1])+'</b><div style="font-size:11.5px;color:var(--muted-2);margin-bottom:8px">'+esc(tipoTxt)+'</div>';
+    for(var p=1;p<=6;p++){ h+='<div class="field" style="display:flex;align-items:center;gap:10px;margin:4px 0"><label style="width:34px;margin:0">'+p+'°</label><select data-prueba="'+pr[0]+'" data-pos="'+p+'" style="flex:1">'+opts(prev[pr[0]+'|'+p])+'</select></div>'; }
+    h+='</div>';
+  });
+  h+='<div id="prErr"></div><button class="btn" id="prSave" onclick="guardarPruebas()">Guardar resultados</button>';
+  h+=secHead('Así queda')+pruebaTablaHTML(d,c);
+  return h;
+}
+function guardarPruebas(){
+  var filas=[],err=document.getElementById('prErr'),dup='';
+  if(window.__pr.d==='carrera'){var vistos={};}
+  document.querySelectorAll('[data-prueba]').forEach(function(s){ if(s.value){ filas.push({prueba:s.getAttribute('data-prueba'),posicion:+s.getAttribute('data-pos'),equipo_id:s.value}); } });
+  if(window.__pr.d==='carrera'){var v={};filas.forEach(function(f){if(v[f.equipo_id])dup='Un equipo no puede ocupar dos puestos en la ubicación final de la carrera.';v[f.equipo_id]=1;});}
+  if(dup){if(err)err.innerHTML='<div class="aviso">'+esc(dup)+'</div>';return;}
+  var b=document.getElementById('prSave');if(b){b.textContent='Guardando…';b.disabled=true;}
+  adminPost({accion:'prueba_guardar',disciplina:window.__pr.d,cat:window.__pr.c,filas:filas}).then(function(r){
+    if(b){b.textContent='Guardar resultados';b.disabled=false;}
+    if(!r||!r.ok){if(err)err.innerHTML='<div class="aviso">'+esc((r&&r.msg)||'No se pudo guardar.')+'</div>';return;}
+    hydrate().then(function(){toast('Resultados guardados');});
+  });
+}
+
 /* ---------------- GOLEADORES / EVENTOS DE PARTIDO ---------------- */
 function golOlimpiadasHTML(limit){
   if(!DATA.goles||!DATA.goles.length)return '';
@@ -2613,9 +2719,9 @@ function vDeportes(){
   if(!gtcAuth.puedeEditar())return backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Sin acceso</h1><p class="page-sub">El panel de Deportes es para Deportes y el superadministrador.</p></div>'+pie();
   var seg=S.params.seg||'result';
   var h=backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Panel de Deportes</h1>';
-  h+='<div class="seg" style="margin:14px 0">'+[['result','Resultados'],['crear','Crear partido'],['jug','Jugadores'],['camp','Campeonatos']].map(function(x){
+  h+='<div class="seg" style="margin:14px 0">'+[['result','Resultados'],['pruebas','Natación y Carrera'],['crear','Crear partido'],['jug','Jugadores'],['camp','Campeonatos']].map(function(x){
     return '<button class="'+(seg===x[0]?'on':'')+'" onclick="ir(\'deportes\',{seg:\''+x[0]+'\'},true)">'+x[1]+'</button>';}).join('')+'</div>';
-  h+= seg==='jug'? depJugadores() : seg==='crear'? depCrear() : seg==='camp'? depCampeonatos() : depResultados();
+  h+= seg==='jug'? depJugadores() : seg==='crear'? depCrear() : seg==='camp'? depCampeonatos() : seg==='pruebas'? depPruebas() : depResultados();
   h+='</div>'+pie();
   return h;
 }
