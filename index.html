@@ -2151,7 +2151,15 @@ function render(){
   /* El header se mantiene visible en todas las pantallas (incluido el login) para no perder la navegación */
   top.hidden=false;
   var app=document.getElementById('app');
-  app.innerHTML=(VIS[S.vista]||vInicio)();
+  var __html; try{ __html=(VIS[S.vista]||vInicio)(); }catch(__e){
+    try{ console.error('[GTC] Error al mostrar '+S.vista, __e); }catch(_){}
+    try{ if(typeof track==='function') track('error_vista',{ref:String(S.vista)+': '+String(__e&&__e.message||__e).slice(0,140)}); }catch(_){}
+    __html='<div class="wrap" style="padding-top:40px;text-align:center"><h1 class="page">Algo no cargó bien</h1>'+
+      '<p class="page-sub" style="margin:10px 0 18px">Esta pantalla tuvo un problema. Vuelve al inicio e inténtalo otra vez.</p>'+
+      '<button class="btn" onclick="S.hist=[];S.torneo=null;ir(\'inicio\',{},true)">Volver al inicio</button></div>';
+    if(S.vista==='inicio'){ __html='<div class="wrap" style="padding-top:40px;text-align:center"><h1 class="page">Algo no cargó bien</h1><p class="page-sub" style="margin:10px 0 18px">Revisa tu conexión y vuelve a abrir la app.</p><button class="btn" onclick="location.reload()">Reintentar</button></div>'; }
+  }
+  app.innerHTML=__html;
   app.scrollTop=0;
   app.classList.remove('v-enter'); void app.offsetWidth; app.classList.add('v-enter');
   var old=document.getElementById('consent'); if(old) old.remove();
@@ -2171,7 +2179,7 @@ document.getElementById('btTheme').onclick=function(){var r=document.documentEle
 document.getElementById('btBell').onclick=function(){ir('notificaciones',{})};
 try{var tm=localStorage.getItem('gtc_tema');if(tm)document.documentElement.setAttribute('data-theme',tm);}catch(e){}
 gtcAuth.cargar();
-render();
+/* El primer render se hace en el BOOT (al final de todos los scripts), para que todas las funciones ya existan. */
 /* Vuelta de OAuth (Apple/Google): al detectar sesión, vincular socio */
 try{ if(typeof sbAuthReady==='function'&&sbAuthReady()){ sbAuth.auth.onAuthStateChange(function(evt,session){
   if(evt==='SIGNED_IN'&&session&&session.user){
@@ -2366,7 +2374,17 @@ function sbGet(path){
 function adminPost(payload){
   payload.token=gtcAuth.token||((gtcAuth.cargar()||{}).token);
   return fetch(API_BASE+'/api/gtc-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-    .then(function(r){return r.json();}).catch(function(){return {ok:false,msg:'No hay conexión.'};});
+    .then(function(r){ var st=r.status; return r.json().catch(function(){return {ok:false,msg:'Respuesta no válida del servidor.'};}).then(function(j){
+      j=j||{ok:false}; j.status=st;
+      /* Acceso del equipo vencido: cerrar esa sesión y llevar a ingresar de nuevo, con aviso claro */
+      if(st===401 && payload.accion!=='login' && payload.accion!=='registrar_cuenta' && payload.accion!=='eliminar_cuenta'){
+        try{ toast('Tu acceso venció. Vuelve a entrar con tu correo y clave.'); }catch(_){}
+        try{ gtcAuth.sesion=null; gtcAuth.token=null; localStorage.removeItem('gtc_sesion'); }catch(_){}
+        try{ S.hist=[]; ir('acceso',{paso:'admin'},true); }catch(_){}
+        j.msg=j.msg||'Tu acceso venció. Vuelve a entrar.';
+      }
+      return j; }); })
+    .catch(function(){return {ok:false,msg:'No hay conexión. Revisa tu internet e inténtalo de nuevo.'};});
 }
 
 /* ---------------- ANALÍTICA ---------------- */
@@ -3171,6 +3189,7 @@ try{ (function(){ if(!window.gtcAuth||!gtcAuth.guardar)return; var _g=gtcAuth.gu
 try{ if(esNativo()){ var _gtcPN=0; var _gtcPI=setInterval(function(){ _gtcPN++; if(gtcPushPlugin()){ clearInterval(_gtcPI); gtcPushPedir(false); } else if(_gtcPN>=10){ clearInterval(_gtcPI); } }, 800); } }catch(_){}
 
 /* ---- BOOT oficial ---- */
+try{ render(); }catch(e){ try{console.error('[GTC] render inicial',e);}catch(_){} }
 try{track('sesion',{});track('vista',{vista:S.vista});}catch(e){}
 hydrate();
 </script>
