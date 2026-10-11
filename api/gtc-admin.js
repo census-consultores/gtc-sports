@@ -35,7 +35,8 @@ function makeToken(correo, rol) {
 function readToken(token) {
   if (!token || token.indexOf('.') < 0) return null;
   const [p, sig] = token.split('.');
-  if (sign(p) !== sig) return null;
+  const exp = sign(p);
+  if (!sig || sig.length !== exp.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(exp))) return null;
   let obj; try { obj = JSON.parse(unb64u(p)); } catch (e) { return null; }
   if (!obj || obj.exp < Date.now()) return null;
   return obj; // {c, r, exp}
@@ -104,6 +105,9 @@ export default async function handler(req, res) {
 
     // ---- BUSCAR SOCIO (público): valida código de socio + cédula sin exponer cédulas al cliente ----
     if (accion === 'buscar_socio') {
+      // exige haberse identificado antes (Apple, Google o código por correo): frena la enumeración anónima
+      const who = await authUser(String(body.access_token || ''));
+      if (!who) return res.status(200).json({ ok: false, campo: 'cedula', msg: 'Tu sesión expiró. Vuelve a entrar con Apple, Google o tu correo.' });
       const socio = baseNum(body.socio);
       const cedula = cedNorm(body.cedula);
       if (!socio) return res.status(200).json({ ok: false, campo: 'socio', msg: 'Escribe tu código de socio.' });

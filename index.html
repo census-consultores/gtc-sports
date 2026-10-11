@@ -740,7 +740,11 @@ var gtcAuth = {
       if(nb.length>na.length&&nb.slice(0,na.length)===na&&nb.length-na.length<=2)return true;
       if(na.length>nb.length&&na.slice(0,nb.length)===nb&&na.length-nb.length<=2)return true;return false;}
     /* La cédula ya no es legible desde el cliente: se valida en el servidor (/api/gtc-admin · buscar_socio). */
-    return fetch(API_BASE+'/api/gtc-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion:'buscar_socio',socio:s,cedula:c})})
+    var _ses=(typeof sbAuth==='object'&&sbAuth&&sbAuth.auth&&sbAuth.auth.getSession)?sbAuth.auth.getSession():Promise.resolve(null);
+    return Promise.resolve(_ses).then(function(sr){
+        var tok=sr&&sr.data&&sr.data.session&&sr.data.session.access_token;
+        return fetch(API_BASE+'/api/gtc-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion:'buscar_socio',socio:s,cedula:c,access_token:tok||''})});
+      })
       .then(function(r){return r.json();})
       .then(function(j){
         if(!j||!j.ok)return {ok:false,campo:(j&&j.campo)||'cedula',msg:(j&&j.msg)||'No pudimos verificar tus datos. Intenta de nuevo.'};
@@ -1591,7 +1595,7 @@ function vCalendario(){
   h+= dia.length? dia.map(function(p){return p.gen?eventRow(p):matchCard(p);}).join('') : empty('Sin partidos este día','Elige otra fecha en la barra superior.');
   h+='</div>'+pie();
   /* botón flotante hoy */
-  h+='<button onclick="ir(\'calendario\',{fs:\''+hoy+'\'},true)" style="position:fixed;right:16px;bottom:calc(var(--tab) + 16px);z-index:40;background:var(--gold);color:#231a00;font-weight:800;border-radius:26px;padding:11px 18px;box-shadow:var(--sh-lg);display:flex;align-items:center;gap:7px;font-size:13px">'+sv(IC.calendario).replace('class="i"','style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2"')+'Hoy</button>';
+  h+='<button onclick="ir(\'calendario\',{fs:\''+hoy+'\'},true)" style="position:fixed;right:16px;bottom:calc(var(--tab) + env(safe-area-inset-bottom) + 26px);z-index:40;background:var(--gold);color:#231a00;font-weight:800;border-radius:26px;padding:11px 18px;box-shadow:var(--sh-lg);display:flex;align-items:center;gap:7px;font-size:13px">'+sv(IC.calendario).replace('class="i"','style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2"')+'Hoy</button>';
   return h;
 }
 
@@ -3084,7 +3088,7 @@ function cerrarInst(){try{localStorage.setItem('gtc_inst_ok','1');}catch(e){}var
 
 /* toast simple */
 function toast(msg){var t=document.createElement('div');t.textContent=msg;
-  t.style.cssText='position:fixed;left:50%;bottom:calc(var(--tab) + 20px);transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--bg);font-weight:700;font-size:13px;padding:10px 18px;border-radius:22px;box-shadow:var(--sh-lg);opacity:0;transition:opacity .2s';
+  t.style.cssText='position:fixed;left:50%;bottom:calc(var(--tab) + env(safe-area-inset-bottom) + 26px);transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--bg);font-weight:700;font-size:13px;padding:10px 18px;border-radius:22px;box-shadow:var(--sh-lg);opacity:0;transition:opacity .2s';
   document.body.appendChild(t);requestAnimationFrame(function(){t.style.opacity='1';});
   setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove();},250);},1800);}
 
