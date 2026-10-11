@@ -13,11 +13,14 @@
 //   jugador_edit     {token, id, ...campos}
 //   jugador_del      {token, id}
 //   analitica        {token, dias}                         -> resumen de eventos
+//   buscar_socio     {socio, cedula}  (público)            -> {ok, personas[]}  (la cédula vive en jugadores.ced_real, no legible por anon)
+//   registrar_cuenta {access_token, socio, cedula, ...}     (sesión de Supabase Auth obligatoria)
+//   jugador_cedulas  {token, equipo_id}                    -> {ok, cedulas:{id:cedula}}
 import crypto from 'node:crypto';
 
 const URL = process.env.SUPABASE_URL || 'https://zwuieoenhwychdbzrsif.supabase.co';
 const KEY = process.env.SUPABASE_SECRET_KEY;
-const SECRET = process.env.SUPABASE_SECRET_KEY || 'gtc-fallback';
+const SECRET = process.env.SUPABASE_SECRET_KEY;
 const ROLES_WRITE = ['superadmin', 'deportes'];
 const ROLES_READ = ['superadmin', 'deportes', 'comision', 'directorio'];
 
@@ -53,6 +56,26 @@ async function sb(path, opts = {}) {
   return data;
 }
 
+// Verifica un access_token de Supabase Auth (socio) y devuelve {id, email} o null
+async function authUser(at) {
+  if (!at) return null;
+  try {
+    const ur = await fetch(URL + '/auth/v1/user', { headers: { apikey: KEY, Authorization: 'Bearer ' + at } });
+    if (!ur.ok) return null;
+    const uj = await ur.json();
+    return uj && uj.id ? { id: uj.id, email: String(uj.email || '').toLowerCase() } : null;
+  } catch (e) { return null; }
+}
+// Código de socio tolerante: ignora ceros a la izquierda y el sufijo -01/-02 de los hijos
+function baseNum(x) { return String(x == null ? '' : x).replace(/\D/g, '').replace(/^0+/, ''); }
+function socioIgual(a, b) {
+  const na = baseNum(a), nb = baseNum(b); if (!na || !nb) return false; if (na === nb) return true;
+  if (nb.length > na.length && nb.slice(0, na.length) === na && nb.length - na.length <= 2) return true;
+  if (na.length > nb.length && na.slice(0, nb.length) === nb && na.length - nb.length <= 2) return true;
+  return false;
+}
+function cedNorm(c) { c = String(c || '').replace(/\D/g, ''); if (c.length === 9) c = '0' + c; return c; }
+
 export default async function handler(req, res) {
   // CORS: la app nativa (capacitor://localhost) llama a este endpoint de forma cross-origin.
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -79,27 +102,45 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, token: makeToken(u.correo, u.rol), nombre: u.nombre, rol: u.rol, correo: u.correo });
     }
 
-    // ---- REGISTRAR CUENTA (público, autovalidado con socio+cédula reales) ----
+    // ---- BUSCAR SOCIO (público): valida código de socio + cédula sin exponer cédulas al cliente ----
+    if (accion === 'buscar_socio') {
+      const socio = baseNum(body.socio);
+      const cedula = cedNorm(body.cedula);
+      if (!socio) return res.status(200).json({ ok: false, campo: 'socio', msg: 'Escribe tu código de socio.' });
+      if (cedula.length !== 10) return res.status(200).json({ ok: false, campo: 'cedula', msg: 'La cédula debe tener 10 dígitos.' });
+      const rows = await sb('jugadores?select=id,nombre,num,socio,invitado,equipo_id&activo=eq.true&ced_real=eq.' + encodeURIComponent(cedula));
+      if (!rows || !rows.length) return res.status(200).json({ ok: false, campo: 'cedula', msg: 'No encontramos esa cédula. Verifica los datos o escribe a deportes@gtcsports.ec.' });
+      const match = rows.filter(j => socioIgual(socio, j.socio));
+      if (!match.length) return res.status(200).json({ ok: false, campo: 'socio', msg: 'La cédula existe, pero el código de socio no coincide. Revisa tu número de socio o escribe a deportes@gtcsports.ec.' });
+      return res.status(200).json({ ok: true, personas: match.map(j => ({ id: j.id, nombre: j.nombre, num: j.num, socio: j.socio, invitado: !!j.invitado, equipo_id: j.equipo_id })) });
+    }
+
+    // ---- REGISTRAR CUENTA: exige la sesión de Supabase Auth del socio y que socio + cédula coincidan ----
     if (accion === 'registrar_cuenta') {
-      const cedula = String(body.cedula || '').replace(/\D/g, '');
+      const u = await authUser(String(body.access_token || ''));
+      if (!u) return res.status(401).json({ ok: false, msg: 'sesion' });
+      const cedula = cedNorm(body.cedula);
       if (cedula.length !== 10) return res.status(200).json({ ok: false, msg: 'cedula' });
-      const js = await sb('jugadores?select=nombre,equipo_id,socio&cedula=eq.' + encodeURIComponent(cedula) + '&limit=1');
-      if (!js || !js.length) return res.status(200).json({ ok: false, msg: 'no-match' });
+      const js = await sb('jugadores?select=nombre,equipo_id,socio&activo=eq.true&ced_real=eq.' + encodeURIComponent(cedula));
+      const j = (js || []).filter(x => socioIgual(body.socio, x.socio))[0];
+      if (!j) return res.status(200).json({ ok: false, msg: 'no-match' });
+      // si la cédula ya está vinculada a OTRA identidad, no se sobrescribe
+      const prev = await sb('cuentas?select=auth_uid&cedula=eq.' + encodeURIComponent(cedula) + '&limit=1');
+      if (prev && prev[0] && prev[0].auth_uid && prev[0].auth_uid !== u.id) return res.status(200).json({ ok: false, msg: 'otra-cuenta' });
       const now = new Date().toISOString();
       const row = {
-        cedula, socio: body.socio || js[0].socio || null, nombre: body.nombre || js[0].nombre,
-        equipo_id: body.equipo_id || js[0].equipo_id || null, cat: body.cat || null,
-        plataforma: body.plataforma || null, last_login: now
+        cedula, socio: j.socio || null, nombre: body.nombre || j.nombre,
+        equipo_id: j.equipo_id || null, cat: body.cat || null,
+        plataforma: body.plataforma || null, last_login: now,
+        auth_uid: u.id, auth_email: u.email || null
       };
-      if (body.correo) row.correo = String(body.correo).trim();
-      if (body.whatsapp) row.whatsapp = String(body.whatsapp).replace(/[^\d+]/g, '');
+      if (body.correo) row.correo = String(body.correo).trim().slice(0, 120);
+      if (body.whatsapp) row.whatsapp = String(body.whatsapp).replace(/[^\d+]/g, '').slice(0, 20);
       if (body.consent) { row.consent = true; row.consent_fecha = now; }
-      if (body.nombres) row.nombres = String(body.nombres).trim();
+      if (body.nombres) row.nombres = String(body.nombres).trim().slice(0, 120);
       if (body.fecha_nacimiento) row.fecha_nacimiento = String(body.fecha_nacimiento).slice(0, 10);
       if (body.auth_provider) row.auth_provider = String(body.auth_provider).slice(0, 20);
-      if (body.auth_email) row.auth_email = String(body.auth_email).trim().toLowerCase();
-      if (body.auth_uid) row.auth_uid = String(body.auth_uid).slice(0, 128);
-      if (Array.isArray(body.deportes)) row.deportes = body.deportes;
+      if (Array.isArray(body.deportes)) row.deportes = body.deportes.slice(0, 20).map(x => String(x).slice(0, 20));
       if (body.perfil_completo) row.perfil_completo = true;
       try {
         await sb('cuentas?on_conflict=cedula', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: JSON.stringify(row) });
@@ -327,11 +368,18 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, n: filas.length });
     }
 
+    if (accion === 'jugador_cedulas') {
+      const eq = String(body.equipo_id || ''); if (!eq) return res.status(400).json({ ok: false, msg: 'Falta el equipo.' });
+      const rows = await sb('jugadores?select=id,ced_real&equipo_id=eq.' + encodeURIComponent(eq));
+      const out = {}; (rows || []).forEach(r => { if (r.ced_real) out[r.id] = r.ced_real; });
+      return res.status(200).json({ ok: true, cedulas: out });
+    }
+
     if (accion === 'jugador_add') {
       const row = {
         equipo_id: body.equipo_id, nombre: String(body.nombre || '').trim(),
         num: body.num || null, socio: body.socio ? String(body.socio).replace(/\D/g, '') : null,
-        cedula: body.cedula ? String(body.cedula).replace(/\D/g, '') : null,
+        ced_real: cedNorm(body.cedula).length === 10 ? cedNorm(body.cedula) : null,
         invitado: !!body.invitado, activo: true, orden: body.orden || 999
       };
       if (!row.equipo_id || !row.nombre) return res.status(400).json({ ok: false, msg: 'Falta equipo o nombre.' });
@@ -342,9 +390,11 @@ export default async function handler(req, res) {
     if (accion === 'jugador_edit') {
       const id = String(body.id || ''); if (!id) return res.status(400).json({ ok: false, msg: 'Falta el jugador.' });
       const patch = {};
-      ['nombre', 'num', 'socio', 'cedula', 'invitado', 'activo', 'equipo_id', 'orden'].forEach(k => {
-        if (body[k] !== undefined) patch[k] = (k === 'socio' || k === 'cedula') && body[k] ? String(body[k]).replace(/\D/g, '') : body[k];
+      ['nombre', 'num', 'socio', 'invitado', 'activo', 'equipo_id', 'orden'].forEach(k => {
+        if (body[k] !== undefined) patch[k] = (k === 'socio') && body[k] ? String(body[k]).replace(/\D/g, '') : body[k];
       });
+      // la cédula solo se cambia si llega una válida (10 dígitos); vacía = no tocar
+      if (cedNorm(body.cedula).length === 10) patch.ced_real = cedNorm(body.cedula);
       await sb('jugadores?id=eq.' + encodeURIComponent(id), { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(patch) });
       return res.status(200).json({ ok: true });
     }

@@ -2,12 +2,28 @@
 // Remitente: notificaciones@gtcsports.ec (dominio verificado en Resend)
 // Variables en Vercel: RESEND_API_KEY (secreta), GTC_APP_URL
 import { Resend } from 'resend';
+import crypto from 'node:crypto';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = 'GTC Sports <notificaciones@gtcsports.ec>';
 const REPLY = ['deportes@guayaquiltenisclub.ec', 'john.arias@censusconsultores.com.ec'];
 const APP = process.env.GTC_APP_URL || 'https://gtcsports.ec';
 const NAVY = '#1B2050';
+// Solo el equipo del Club (token firmado por /api/gtc-admin, roles Deportes o superadmin) puede enviar correos.
+const SECRET = process.env.SUPABASE_SECRET_KEY;
+function tokenOk(token) {
+  if (!SECRET || !token || String(token).indexOf('.') < 0) return false;
+  const [p, sig] = String(token).split('.');
+  const exp = crypto.createHmac('sha256', SECRET).update(p).digest('hex');
+  if (sig.length !== exp.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(exp))) return false;
+  try {
+    const o = JSON.parse(Buffer.from(p.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString());
+    return !!o && o.exp > Date.now() && (o.r === 'superadmin' || o.r === 'deportes');
+  } catch (e) { return false; }
+}
+// Escapa los datos que se insertan en el HTML del correo
+function escH(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function escAll(d) { const o = {}; Object.keys(d || {}).forEach(k => { o[k] = escH(d[k]); }); return o; }
 
 function base(titulo, cuerpo) {
   return `<!doctype html><html><body style="margin:0;background:#eef0f4;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1a1c2e">
@@ -50,11 +66,14 @@ const PLANTILLAS = {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
-    const { plantilla, destinatario, datos = {} } = req.body || {};
+    const { plantilla, destinatario, datos = {}, token } = req.body || {};
+    if (!tokenOk(token)) return res.status(401).json({ error: 'No autorizado' });
+    if (!/^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/.test(String(destinatario || ''))) return res.status(400).json({ error: 'Destinatario no válido' });
     if (!plantilla || !destinatario) return res.status(400).json({ error: 'Faltan plantilla o destinatario' });
     const fn = PLANTILLAS[plantilla];
     if (!fn) return res.status(400).json({ error: 'Plantilla no válida' });
-    const { asunto, html } = fn(datos);
+    const asunto = String(fn(datos).asunto || '').replace(/[\r\n]+/g, ' ').slice(0, 150);
+    const { html } = fn(escAll(datos));
     const { data, error } = await resend.emails.send({ from: FROM, to: destinatario, replyTo: REPLY, subject: asunto, html });
     if (error) return res.status(502).json({ error });
     return res.status(200).json({ ok: true, id: data?.id });

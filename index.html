@@ -469,9 +469,9 @@ button,a,.li,.mc,.tc,.chip,.side{ -webkit-tap-highlight-color:transparent }
 .ctabswrap{position:sticky;top:0;z-index:39;background:var(--bg);padding:9px var(--gut);box-shadow:0 6px 12px -10px rgba(12,16,48,.4)}
 :root[data-theme="dark"] .ctabswrap{background:var(--bg)}
 /* transición de vista tipo app */
-@keyframes gtcvin{from{opacity:.35}to{opacity:1}}
-#app.v-enter{animation:gtcvin .12s ease both}
-@media (prefers-reduced-motion:reduce){#app.v-enter{animation:none}}
+@keyframes gtcvin{from{opacity:.55}to{opacity:1}}
+#app.v-enter>.wrap{animation:gtcvin .14s ease both}
+@media (prefers-reduced-motion:reduce){#app.v-enter>.wrap{animation:none}}
 .mc,.li,.tc{transition:transform .1s}
 .mc:active,.li:active,.tc:active{transform:scale(.985)}
 
@@ -739,10 +739,12 @@ var gtcAuth = {
     function socioIgual(a,b){var na=baseNum(a),nb=baseNum(b);if(!na||!nb)return false;if(na===nb)return true;
       if(nb.length>na.length&&nb.slice(0,na.length)===na&&nb.length-na.length<=2)return true;
       if(na.length>nb.length&&na.slice(0,nb.length)===nb&&na.length-nb.length<=2)return true;return false;}
-    return sbGet('jugadores?select=id,nombre,num,socio,cedula,invitado,equipo_id&cedula=eq.'+encodeURIComponent(c)+'&activo=eq.true')
-      .then(function(rows){
-        if(!rows||!rows.length)return {ok:false,campo:'cedula',msg:'No encontramos esa cédula. Verifica los datos o escribe a deportes@gtcsports.ec.'};
-        var match=rows.filter(function(j){return socioIgual(s,j.socio);});
+    /* La cédula ya no es legible desde el cliente: se valida en el servidor (/api/gtc-admin · buscar_socio). */
+    return fetch(API_BASE+'/api/gtc-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion:'buscar_socio',socio:s,cedula:c})})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        if(!j||!j.ok)return {ok:false,campo:(j&&j.campo)||'cedula',msg:(j&&j.msg)||'No pudimos verificar tus datos. Intenta de nuevo.'};
+        var match=(j.personas||[]).filter(function(x){return socioIgual(s,x.socio);});
         if(!match.length)return {ok:false,campo:'socio',msg:'La cédula existe, pero el código de socio no coincide. Revisa tu número de socio o escribe a deportes@gtcsports.ec.'};
         var personas=match.map(function(j){var e=EQ[j.equipo_id]||{};return {id:j.id,nombre:titulo(j.nombre),socio:j.socio||s,cedula:c,cat:e.cat,equipo:j.equipo_id,equipoNom:e.n?titulo(e.n):'',rol:'socio'};});
         S.candidatos=personas;
@@ -1720,7 +1722,7 @@ function vNotificaciones(){
   var _pushTok=false; try{_pushTok=!!localStorage.getItem('gtc_push_tok');}catch(_e){}
   h+='<div class="row-list">';
   if(esNativo()){
-    h+='<div class="li"><span class="ic" style="background:var(--navy)">'+sv(IC.bell)+'</span><div class="tx"><b>Avisos en este telefono</b><span>'+(_pushTok?'Activados en este dispositivo':'Activalos para recibir tus partidos')+'</span></div>'+(_pushTok?'<span class="bdg next">Activo</span>':'<button class="btn line" style="width:auto;padding:8px 14px" onclick="gtcRegistrarPush()">Activar</button>')+'</div>';
+    h+='<div class="li"><span class="ic" style="background:var(--navy)">'+sv(IC.bell)+'</span><div class="tx"><b>Avisos en este teléfono</b><span>'+(_pushTok?'Activados en este dispositivo':'Actívalos para recibir tus partidos')+'</span></div>'+(_pushTok?'<span class="bdg next">Activo</span>':'<button class="btn line" style="width:auto;padding:8px 14px" onclick="gtcRegistrarPush()">Activar</button>')+'</div>';
   }
   h+='<div class="li"><span class="ic" style="background:var(--navy)">'+sv(IC.correo||IC.bell)+'</span><div class="tx"><b>Correo</b><span>'+esc(s.correoAdicional||'Configura tu correo en la cuenta')+'</span></div><span class="bdg next">Activo</span></div>'+
     '</div>';
@@ -1864,7 +1866,7 @@ function correoEnviar(){
   window.__otpEmail=m;
   sbAuth.auth.signInWithOtp({email:m,options:{shouldCreateUser:true}}).then(function(r){
     if(b){b.textContent='Enviar código';b.disabled=false;}
-    if(r&&r.error){ if(e)e.innerHTML='<div class="aviso">'+esc(r.error.message||'No se pudo enviar el código.')+'</div>'; return; }
+    if(r&&r.error){ var _m=String(r.error.message||''); var _t=/fetch|network|load failed|conex/i.test(_m)?'No hay conexión. Revisa tu internet e inténtalo de nuevo.':(/rate|seconds|segundos|security purposes/i.test(_m)?'Espera un momento antes de pedir otro código.':'No se pudo enviar el código. Inténtalo de nuevo.'); if(e)e.innerHTML='<div class="aviso">'+esc(_t)+'</div>'; return; }
     window.__otpSentAt=Date.now(); try{ localStorage.setItem('gtc_otp_pend',JSON.stringify({m:m,t:Date.now()})); }catch(_){ }
     var box=document.getElementById('otpBox'); if(box)box.style.display='block';
     if(e)e.innerHTML='<div class="nota" style="margin-top:8px">Enviamos un código a <b>'+esc(m)+'</b>. Revisa tu correo (y spam).</div>';
@@ -2161,7 +2163,12 @@ function render(){
   }
   app.innerHTML=__html;
   app.scrollTop=0;
-  app.classList.remove('v-enter'); void app.offsetWidth; app.classList.add('v-enter');
+  /* Animación de entrada solo al cambiar de pantalla (no al cambiar de pestaña o filtro dentro de la misma),
+     y solo sobre el contenido: las barras fijas (torneo, pestañas) no parpadean. */
+  var __vk=S.vista+'|'+(S.vista==='torneo'?(S.torneo||''):(S.params&&S.params.id)||'');
+  if(__vk!==window.__gtcVK){ app.classList.remove('v-enter'); void app.offsetWidth; app.classList.add('v-enter'); }
+  else { app.classList.remove('v-enter'); }
+  window.__gtcVK=__vk;
   var old=document.getElementById('consent'); if(old) old.remove();
   var bc=bannerConsent();
   if(bc){ document.body.insertAdjacentHTML('beforeend', bc); }
@@ -2415,7 +2422,7 @@ var GTC_HYDRATED=false;
 function hydrate(){
   return Promise.all([
     sbGet('equipos?select=id,tor,cat,nombre,delegado&order=cat'),
-    sbGet('jugadores?select=id,equipo_id,nombre,num,socio,cedula,invitado,orden&activo=eq.true&order=orden'),
+    sbGet('jugadores?select=id,equipo_id,nombre,num,socio,invitado,orden&activo=eq.true&order=orden'),
     sbGet('partidos?select=id,tor,disciplina,cat,fase,fecha,hora,sede,tipo,local_id,visita_id,gl,gv,estado&limit=3000'),
     sbGet('goles?select=partido_id,jugador_id,equipo_id,cantidad&limit=5000'),
     sbGet('tarjetas?select=partido_id,jugador_id,equipo_id,tipo&limit=5000'),
@@ -2426,7 +2433,7 @@ function hydrate(){
     if(eqs&&eqs.length){
       var byEq={};
       eqs.forEach(function(e){e.n=e.nombre;e.del=e.delegado;e.j=[];byEq[e.id]=e;});
-      (jus||[]).forEach(function(j){var e=byEq[j.equipo_id];if(e)e.j.push({id:j.id,n:j.nombre,num:j.num,socio:j.socio,cedula:j.cedula,inv:!!j.invitado,orden:j.orden});});
+      (jus||[]).forEach(function(j){var e=byEq[j.equipo_id];if(e)e.j.push({id:j.id,n:j.nombre,num:j.num,socio:j.socio,inv:!!j.invitado,orden:j.orden});});
       DATA.equipos=eqs.filter(function(e){return !esCampEq(e);});
       CAMP.equipos=eqs.filter(esCampEq);
     }
@@ -2939,7 +2946,10 @@ function depJugadores(){
   return h;
 }
 function jugNuevo(){jugFormRender({});}
-function jugEditar(id){var e=EQ[window.__jeq]||{};var j=(e.j||[]).filter(function(x){return x.id===id;})[0]||{};jugFormRender(j);}
+function jugEditar(id){var e=EQ[window.__jeq]||{};var j=(e.j||[]).filter(function(x){return x.id===id;})[0]||{};jugFormRender(j);
+  /* la cédula no viaja con los datos públicos: se pide al servidor solo para Deportes */
+  var c=document.getElementById('jC'); if(c){c.placeholder='Cargando…';}
+  adminPost({accion:'jugador_cedulas',equipo_id:window.__jeq}).then(function(r){var c2=document.getElementById('jC');if(!c2)return;c2.placeholder='10 dígitos';if(r&&r.ok&&r.cedulas&&r.cedulas[id]&&!c2.value)c2.value=r.cedulas[id];});}
 function jugFormRender(j){
   var c=document.getElementById('jugForm');if(!c)return;
   c.innerHTML='<div class="card" style="padding:14px;margin-top:12px">'+
@@ -3084,7 +3094,13 @@ function toast(msg){var t=document.createElement('div');t.textContent=msg;
 function registrarCuenta(datos){
   try{
     var body=Object.assign({accion:'registrar_cuenta',plataforma:plataforma()},datos||{});
-    fetch(API_BASE+'/api/gtc-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(function(){});
+    /* El servidor exige la sesión de Supabase Auth del socio (evita que un tercero cambie sus datos de contacto). */
+    var p=(typeof sbAuth==='object'&&sbAuth&&sbAuth.auth&&sbAuth.auth.getSession)?sbAuth.auth.getSession():Promise.resolve(null);
+    Promise.resolve(p).then(function(r){
+      var tok=r&&r.data&&r.data.session&&r.data.session.access_token; if(!tok) return;
+      body.access_token=tok;
+      return fetch(API_BASE+'/api/gtc-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    }).catch(function(){});
   }catch(e){}
 }
 function vContactos(){
