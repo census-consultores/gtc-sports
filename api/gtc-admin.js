@@ -4,7 +4,11 @@
 // Acciones (POST JSON {accion, ...}):
 //   login            {correo, clave}                       -> {ok, token, nombre, rol, correo}
 //   resultado        {token, partido_id, gl, gv, goles[], tarjetas[]}
-//   partido_edit     {token, partido_id, fecha, hora, sede, local_id, visita_id}
+//   partido_edit     {token, partido_id, fecha, hora, sede, local_id, visita_id}  (si cambian los equipos, borra goles/tarjetas de los equipos salientes)
+//   partido_del      {token, partido_id}                    (borra el partido; goles y tarjetas en cascada)
+//   equipo_add       {token, tor, nombre, cat?, delegado?}  (Olimpiadas: tor=olimpiadas2026 + cat)
+//   equipo_edit      {token, id, nombre?, delegado?}
+//   equipo_del       {token, id}                            (borra equipo, sus partidos, goles, tarjetas, puestos y nómina)
 //   torneo_add       {token, nombre, disciplina, desde, hasta}   (campeonato de un deporte)
 //   torneo_edit      {token, id, nombre, desde, hasta, estado}
 //   equipo_add       {token, tor, nombre}
@@ -265,7 +269,7 @@ export default async function handler(req, res) {
       const goles = (body.goles || []).filter(g => g.jugador_id && +g.cantidad > 0)
         .map(g => ({ partido_id: pid, jugador_id: g.jugador_id, equipo_id: g.equipo_id || null, cantidad: parseInt(g.cantidad, 10) }));
       const tarjetas = (body.tarjetas || []).filter(t => t.jugador_id && +t.cantidad > 0)
-        .flatMap(t => Array.from({ length: parseInt(t.cantidad, 10) }, () => ({ partido_id: pid, jugador_id: t.jugador_id, equipo_id: t.equipo_id || null, tipo: t.tipo || 'amarilla' })));
+        .flatMap(t => Array.from({ length: parseInt(t.cantidad, 10) }, () => ({ partido_id: pid, jugador_id: t.jugador_id, equipo_id: t.equipo_id || null, tipo: t.tipo === 'roja' ? 'roja' : 'amarilla' })));
       if (goles.length) await sb('goles', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(goles) });
       if (tarjetas.length) await sb('tarjetas', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(tarjetas) });
       return res.status(200).json({ ok: true, estado });
@@ -274,12 +278,41 @@ export default async function handler(req, res) {
     if (accion === 'partido_edit') {
       const pid = String(body.partido_id || '');
       if (!pid) return res.status(400).json({ ok: false, msg: 'Falta el partido.' });
+      const cur = await sb('partidos?select=id,cat,local_id,visita_id,tor&id=eq.' + encodeURIComponent(pid));
+      if (!cur || !cur.length) return res.status(404).json({ ok: false, msg: 'El partido no existe.' });
+      const p0 = cur[0];
       const patch = {};
       ['fecha', 'hora', 'sede', 'local_id', 'visita_id', 'cat', 'fase', 'disciplina'].forEach(k => {
         if (body[k] != null && body[k] !== '') patch[k] = body[k];
       });
+      const nl = patch.local_id || p0.local_id, nv = patch.visita_id || p0.visita_id;
+      const cambianEquipos = nl !== p0.local_id || nv !== p0.visita_id;
+      if (cambianEquipos) {
+        if (nl === nv) return res.status(400).json({ ok: false, msg: 'El local y el visitante no pueden ser el mismo equipo.' });
+        const eqs = await sb('equipos?select=id,cat,tor&id=in.(' + [nl, nv].map(encodeURIComponent).join(',') + ')');
+        if (!eqs || eqs.length !== 2) return res.status(400).json({ ok: false, msg: 'Alguno de los equipos no existe.' });
+        const tor = p0.tor || 'olimpiadas2026';
+        if (eqs.some(e => (e.tor || 'olimpiadas2026') !== tor)) return res.status(400).json({ ok: false, msg: 'Los equipos deben ser del mismo torneo del partido.' });
+        if (tor === 'olimpiadas2026' && eqs.some(e => e.cat !== (patch.cat || p0.cat))) return res.status(400).json({ ok: false, msg: 'Los dos equipos deben ser de la categoría del partido.' });
+      }
       patch.updated_at = new Date().toISOString();
       await sb('partidos?id=eq.' + encodeURIComponent(pid), { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(patch) });
+      if (cambianEquipos) {
+        // goles y tarjetas de jugadores de los equipos que salieron del partido ya no corresponden
+        const fuera = 'not.in.(' + [nl, nv].map(encodeURIComponent).join(',') + ')';
+        await sb('goles?partido_id=eq.' + encodeURIComponent(pid) + '&equipo_id=' + fuera, { method: 'DELETE', prefer: 'return=minimal' });
+        await sb('tarjetas?partido_id=eq.' + encodeURIComponent(pid) + '&equipo_id=' + fuera, { method: 'DELETE', prefer: 'return=minimal' });
+      }
+      return res.status(200).json({ ok: true, cambianEquipos });
+    }
+
+    if (accion === 'partido_del') {
+      const pid = String(body.partido_id || '');
+      if (!pid) return res.status(400).json({ ok: false, msg: 'Falta el partido.' });
+      const cur = await sb('partidos?select=id&id=eq.' + encodeURIComponent(pid));
+      if (!cur || !cur.length) return res.status(404).json({ ok: false, msg: 'El partido ya no existe.' });
+      // goles y tarjetas se borran en cascada (FK ON DELETE CASCADE)
+      await sb('partidos?id=eq.' + encodeURIComponent(pid), { method: 'DELETE', prefer: 'return=minimal' });
       return res.status(200).json({ ok: true });
     }
 
@@ -336,18 +369,62 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    const CATS_OLI = ['I1', 'I2', 'I3', 'I4', 'J1', 'J2', 'J3', 'SEN', 'MAS', 'DAM'];
     if (accion === 'equipo_add') {
       const tor = String(body.tor || '');
       const nombre = String(body.nombre || '').trim().slice(0, 50);
-      if (!tor || tor === 'olimpiadas2026') return res.status(400).json({ ok: false, msg: 'Campeonato no válido.' });
+      const delegado = String(body.delegado || '').trim().slice(0, 80) || null;
       if (nombre.length < 2) return res.status(400).json({ ok: false, msg: 'Escribe el nombre del equipo.' });
-      const t = await sb('torneos?select=id&id=eq.' + encodeURIComponent(tor));
-      if (!t || !t.length) return res.status(404).json({ ok: false, msg: 'El campeonato no existe.' });
-      const id = tor + '-' + (slug(nombre) || 'equipo');
+      let id, row;
+      if (tor === 'olimpiadas2026') {
+        const cat = String(body.cat || '');
+        if (CATS_OLI.indexOf(cat) < 0) return res.status(400).json({ ok: false, msg: 'Elige la categoría del equipo.' });
+        id = cat.toLowerCase() + '-' + (slug(nombre) || 'equipo');
+        row = { id, tor, cat, nombre: nombre.toUpperCase(), delegado };
+      } else {
+        if (!tor) return res.status(400).json({ ok: false, msg: 'Campeonato no válido.' });
+        const t = await sb('torneos?select=id&id=eq.' + encodeURIComponent(tor));
+        if (!t || !t.length) return res.status(404).json({ ok: false, msg: 'El campeonato no existe.' });
+        id = tor + '-' + (slug(nombre) || 'equipo');
+        row = { id, tor, cat: 'GEN', nombre: nombre.toUpperCase(), delegado };
+      }
       const ex = await sb('equipos?select=id&id=eq.' + encodeURIComponent(id));
-      if (ex && ex.length) return res.status(400).json({ ok: false, msg: 'Ya existe un equipo con ese nombre en este campeonato.' });
-      const r = await sb('equipos', { method: 'POST', body: JSON.stringify({ id, tor, cat: 'GEN', nombre: nombre.toUpperCase() }) });
-      return res.status(200).json({ ok: true, equipo: (r || [])[0] });
+      if (ex && ex.length) return res.status(400).json({ ok: false, msg: 'Ya existe un equipo con ese nombre en esa categoría.' });
+      const r = await sb('equipos', { method: 'POST', body: JSON.stringify(row) });
+      return res.status(200).json({ ok: true, equipo: (r || [])[0] || row });
+    }
+
+    if (accion === 'equipo_edit') {
+      const id = String(body.id || '');
+      if (!id) return res.status(400).json({ ok: false, msg: 'Falta el equipo.' });
+      const patch = {};
+      if (body.nombre != null) {
+        const n = String(body.nombre).trim().slice(0, 50);
+        if (n.length < 2) return res.status(400).json({ ok: false, msg: 'Escribe el nombre del equipo.' });
+        patch.nombre = n.toUpperCase();
+      }
+      if (body.delegado != null) patch.delegado = String(body.delegado).trim().slice(0, 80) || null;
+      if (!Object.keys(patch).length) return res.status(400).json({ ok: false, msg: 'No hay cambios.' });
+      await sb('equipos?id=eq.' + encodeURIComponent(id), { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(patch) });
+      return res.status(200).json({ ok: true });
+    }
+
+    if (accion === 'equipo_del') {
+      const id = String(body.id || '');
+      if (!id) return res.status(400).json({ ok: false, msg: 'Falta el equipo.' });
+      const e = await sb('equipos?select=id&id=eq.' + encodeURIComponent(id));
+      if (!e || !e.length) return res.status(404).json({ ok: false, msg: 'El equipo ya no existe.' });
+      const q = encodeURIComponent(id);
+      const ps = await sb('partidos?select=id&or=(local_id.eq.' + q + ',visita_id.eq.' + q + ')');
+      // 1) sus partidos (goles y tarjetas de esos partidos caen en cascada)
+      if (ps && ps.length) await sb('partidos?or=(local_id.eq.' + q + ',visita_id.eq.' + q + ')', { method: 'DELETE', prefer: 'return=minimal' });
+      // 2) restos con referencia directa al equipo
+      await sb('goles?equipo_id=eq.' + q, { method: 'DELETE', prefer: 'return=minimal' });
+      await sb('tarjetas?equipo_id=eq.' + q, { method: 'DELETE', prefer: 'return=minimal' });
+      await sb('resultados_prueba?equipo_id=eq.' + q, { method: 'DELETE', prefer: 'return=minimal' });
+      // 3) el equipo (su nómina se borra en cascada)
+      await sb('equipos?id=eq.' + q, { method: 'DELETE', prefer: 'return=minimal' });
+      return res.status(200).json({ ok: true, partidos: (ps || []).length });
     }
 
     // ---- NATACIÓN / CARRERA: puestos por prueba (reemplaza los de esa disciplina y categoría) ----

@@ -380,6 +380,13 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
 .field input[type=date]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;text-align:left;line-height:1.2;height:44px}
 .field input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .field input[type=date]::-webkit-calendar-picker-indicator{margin-left:auto}
+.peligro-zona{margin-top:22px;border:1.5px solid rgba(214,69,69,.45);border-radius:14px;padding:14px;background:rgba(214,69,69,.05)}
+.peligro-zona h4{margin:0 0 4px;font-size:13px;font-weight:800;color:var(--rojo)}
+.peligro-zona p{margin:0 0 10px;font-size:12px;color:var(--muted);line-height:1.5}
+.btn.rojo{background:#c0392b;border-color:#c0392b;color:#fff;box-shadow:none}
+.rjt{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--line);background:var(--card);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--muted-2);flex:0 0 34px}
+.rjt.on{background:#D33;border-color:#D33;color:#fff}
+#ovPel .pl li{margin:0 0 5px}
 .aviso{background:rgba(214,69,69,.10);color:var(--rojo);border-radius:11px;padding:10px 13px;font-size:12px;font-weight:600;margin-top:12px}
 .demo{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);
   border:1px solid var(--gold);border-radius:20px;padding:5px 12px}
@@ -1628,7 +1635,7 @@ function vMas(){
   if(s && gtcAuth.esAdmin()){
     h+=secHead('Administración');
     h+='<div class="row-list">'+
-      (gtcAuth.puedeEditar()?liNav('tabla','Panel de Deportes','Registrar resultados, goles, amarillas y jugadores',"ir('deportes',{})"):'')+
+      (gtcAuth.puedeEditar()?liNav('tabla','Panel de Deportes','Resultados, goles, tarjetas, equipos y jugadores',"ir('deportes',{})"):'')+
       liNav('bell','Analítica de uso','Quién ingresa, qué visitan e instalaciones',"ir('analitica',{})")+
       (gtcAuth.esSuper()?liNav('correo','Contactos de socios','Correos y WhatsApp para comunicaciones',"ir('contactos',{})"):'')+
       (gtcAuth.esSuper()?liNav('info','Usuarios y roles','Base de datos de accesos del equipo',"ir('admin',{})"):'')+
@@ -2372,6 +2379,16 @@ function sbGet(path){
   return fetch(SB_URL+'/rest/v1/'+path,{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}})
     .then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});
 }
+/* lectura completa por páginas (el servidor entrega máx. 1000 filas por consulta) */
+function sbGetAll(path){
+  var out=[], size=1000;
+  function page(from){
+    return fetch(SB_URL+'/rest/v1/'+path,{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Range-Unit':'items',Range:from+'-'+(from+size-1)}})
+      .then(function(r){return r.ok?r.json():[];}).catch(function(){return [];})
+      .then(function(rows){ rows=Array.isArray(rows)?rows:[]; out=out.concat(rows); return rows.length===size&&from<50000?page(from+size):out; });
+  }
+  return page(0);
+}
 function adminPost(payload){
   payload.token=gtcAuth.token||((gtcAuth.cargar()||{}).token);
   return fetch(API_BASE+'/api/gtc-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
@@ -2416,10 +2433,10 @@ var GTC_HYDRATED=false;
 function hydrate(){
   return Promise.all([
     sbGet('equipos?select=id,tor,cat,nombre,delegado&order=cat'),
-    sbGet('jugadores?select=id,equipo_id,nombre,num,socio,invitado,orden&activo=eq.true&order=orden'),
-    sbGet('partidos?select=id,tor,disciplina,cat,fase,fecha,hora,sede,tipo,local_id,visita_id,gl,gv,estado&limit=3000'),
-    sbGet('goles?select=partido_id,jugador_id,equipo_id,cantidad&limit=5000'),
-    sbGet('tarjetas?select=partido_id,jugador_id,equipo_id,tipo&limit=5000'),
+    sbGetAll('jugadores?select=id,equipo_id,nombre,num,socio,invitado,orden&activo=eq.true&order=orden,id'),
+    sbGetAll('partidos?select=id,tor,disciplina,cat,fase,fecha,hora,sede,tipo,local_id,visita_id,gl,gv,estado&order=id'),
+    sbGetAll('goles?select=partido_id,jugador_id,equipo_id,cantidad&order=id'),
+    sbGetAll('tarjetas?select=partido_id,jugador_id,equipo_id,tipo&order=id'),
     sbGet('torneos?select=id,nombre,disciplina,estado,desde,hasta&order=created_at').catch(function(){return [];}),
     sbGet('resultados_prueba?select=disciplina,cat,prueba,posicion,equipo_id&tor=eq.olimpiadas2026&limit=2000').catch(function(){return [];})
   ]).then(function(res){
@@ -2740,7 +2757,7 @@ function vDeportes(){
   if(!gtcAuth.puedeEditar())return backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Sin acceso</h1><p class="page-sub">El panel de Deportes es para Deportes y el superadministrador.</p></div>'+pie();
   var seg=S.params.seg||'result';
   var h=backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Panel de Deportes</h1>';
-  h+='<div class="seg" style="margin:14px 0">'+[['result','Resultados'],['pruebas','Natación y Carrera'],['crear','Crear partido'],['jug','Jugadores'],['camp','Campeonatos']].map(function(x){
+  h+='<div class="seg" style="margin:14px 0">'+[['result','Resultados'],['pruebas','Natación y Carrera'],['crear','Crear partido'],['jug','Equipos'],['camp','Campeonatos']].map(function(x){
     return '<button class="'+(seg===x[0]?'on':'')+'" onclick="ir(\'deportes\',{seg:\''+x[0]+'\'},true)">'+x[1]+'</button>';}).join('')+'</div>';
   h+= seg==='jug'? depJugadores() : seg==='crear'? depCrear() : seg==='camp'? depCampeonatos() : seg==='pruebas'? depPruebas() : depResultados();
   h+='</div>'+pie();
@@ -2784,9 +2801,9 @@ function vDepMatch(){
   var p=pOli(praw);
   var eqL=EQ[praw.l],eqV=EQ[praw.v];
   var ex=GOL_IDX[p.id]||{goles:[],tarjetas:[]};
-  var gmap={},amap={};
+  var gmap={},amap={},rmap={};
   ex.goles.forEach(function(g){gmap[g.jugador_id]=(gmap[g.jugador_id]||0)+(+g.cantidad||0);});
-  ex.tarjetas.forEach(function(t){if((t.tipo||'amarilla')==='amarilla')amap[t.jugador_id]=(amap[t.jugador_id]||0)+1;});
+  ex.tarjetas.forEach(function(t){if((t.tipo||'amarilla')==='amarilla')amap[t.jugador_id]=(amap[t.jugador_id]||0)+1;else if(t.tipo==='roja')rmap[t.jugador_id]=1;});
   window.__dm={pid:p.id,eqL:praw.l,eqV:praw.v};
   var catn=p.cat&&CAT[p.cat]?CAT[p.cat].n:(p.label||'');
   var h=backBar('Panel de Deportes',"ir('deportes',{seg:'result'},true)")+'<div class="wrap" style="padding-top:12px">';
@@ -2803,12 +2820,13 @@ function vDepMatch(){
     var js=(eq.j||[]).slice().sort(function(a,b){return (a.orden||0)-(b.orden||0);});
     return '<h2 class="sec">'+esc(titulo(eq.n))+' <span style="margin-left:auto;font-weight:700;color:var(--muted-2)">'+js.length+'</span></h2>'+
       '<div class="card"><div style="padding:4px 12px">'+
-      '<div style="display:flex;font-size:10.5px;color:var(--muted-2);font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:6px 2px 4px"><span style="flex:1">Jugador</span><span style="width:104px;text-align:center">Goles</span><span style="width:104px;text-align:center">Amar.</span></div>'+
+      '<div style="display:flex;font-size:10.5px;color:var(--muted-2);font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:6px 2px 4px"><span style="flex:1">Jugador</span><span style="width:104px;text-align:center">Goles</span><span style="width:104px;text-align:center">Amar.</span><span style="width:34px;text-align:center">Roja</span></div>'+
       js.map(function(j){
         return '<div style="display:flex;align-items:center;gap:8px;padding:7px 2px;border-top:1px solid var(--line)">'+
           '<span class="nm" style="flex:1;font-size:13px">'+esc(titulo(j.n))+(j.inv?' <span class="rr">Inv</span>':'')+'</span>'+
           stepCtl('g',j.id,eq.id,gmap[j.id]||0)+
           stepCtl('a',j.id,eq.id,amap[j.id]||0)+
+          '<button type="button" class="rjt'+(rmap[j.id]?' on':'')+'" data-r="'+j.id+'" data-eq="'+eq.id+'" aria-label="Tarjeta roja" onclick="this.classList.toggle(\'on\')">R</button>'+
         '</div>';
       }).join('')+'</div></div>';
   }
@@ -2820,7 +2838,9 @@ function vDepMatch(){
     '<div class="field"><label>Fecha</label><input id="peF" type="date" value="'+esc(praw.f||'')+'"></div>'+
     '<div class="field"><label>Hora</label><input id="peH" value="'+esc(praw.h||'')+'" placeholder="16:30"></div>'+
     '<div class="field"><label>Sede</label><input id="peS" value="'+esc(praw.sede||'')+'"></div>'+
+    peEquiposCampos(praw)+
     '<button class="btn line" style="margin-top:8px" onclick="guardarPartidoEdit()">Guardar cambios del partido</button></div></details>';
+  h+='<div class="peligro-zona"><h4>Borrar este partido</h4><p>Lo quita del calendario, de los resultados y de las tablas. No se puede deshacer.</p><button class="btn rojo" onclick="partidoBorrarFlujo()">Borrar partido</button></div>';
   h+='</div>'+pie();
   return h;
 }
@@ -2845,6 +2865,7 @@ function guardarResultado(){
   var goles=[],tarjetas=[];
   document.querySelectorAll('[data-g]').forEach(function(inp){var n=parseInt(inp.value,10);if(n>0)goles.push({jugador_id:inp.getAttribute('data-g'),equipo_id:inp.getAttribute('data-eq'),cantidad:n});});
   document.querySelectorAll('[data-a]').forEach(function(inp){var n=parseInt(inp.value,10);if(n>0)tarjetas.push({jugador_id:inp.getAttribute('data-a'),equipo_id:inp.getAttribute('data-eq'),tipo:'amarilla',cantidad:n});});
+  document.querySelectorAll('[data-r].on').forEach(function(bt){tarjetas.push({jugador_id:bt.getAttribute('data-r'),equipo_id:bt.getAttribute('data-eq'),tipo:'roja',cantidad:1});});
   var sumaG=goles.reduce(function(a,g){return a+g.cantidad;},0);
   if(gl!==''&&gv!==''){ /* aviso suave si goles individuales no cuadran, no bloquea */ }
   if(b){b.textContent='Guardando…';b.disabled=true;}
@@ -2854,12 +2875,68 @@ function guardarResultado(){
     hydrate().then(function(){ ir('deportes',{seg:'result'},true); toast('Marcador guardado'); });
   });
 }
+function peEquiposCampos(praw){
+  var tor=praw.tor||'olimpiadas2026';
+  var lista=(tor==='olimpiadas2026'?(DATA.equipos||[]).filter(function(e){return e.cat===praw.cat;}):(CAMP.equipos||[]).filter(function(e){return e.tor===tor;}))
+    .slice().sort(function(a,b){return String(a.n||'').localeCompare(String(b.n||''));});
+  function sel(id,val){return '<select id="'+id+'">'+lista.map(function(e){return '<option value="'+e.id+'"'+(e.id===val?' selected':'')+'>'+esc(titulo(e.n))+'</option>';}).join('')+'</select>';}
+  return '<div class="field"><label>Equipo local</label>'+sel('peL',praw.l)+'</div><div class="field"><label>Equipo visitante</label>'+sel('peV',praw.v)+'</div>';
+}
 function guardarPartidoEdit(){
   var f=(document.getElementById('peF')||{}).value,hh=(document.getElementById('peH')||{}).value,ss=(document.getElementById('peS')||{}).value;
-  adminPost({accion:'partido_edit',partido_id:window.__dm.pid,fecha:f,hora:hh,sede:ss}).then(function(r){
-    if(!r.ok){toast('No se pudo actualizar');return;}
-    hydrate().then(function(){toast('Partido actualizado');});
-  });
+  var l=(document.getElementById('peL')||{}).value,v=(document.getElementById('peV')||{}).value;
+  var dm=window.__dm||{};
+  if(l&&v&&l===v){toast('El local y el visitante no pueden ser el mismo equipo');return;}
+  var cambia=(l&&l!==dm.eqL)||(v&&v!==dm.eqV);
+  function enviar(){
+    adminPost({accion:'partido_edit',partido_id:dm.pid,fecha:f,hora:hh,sede:ss,local_id:l,visita_id:v}).then(function(r){
+      if(!r.ok){toast(r.msg||'No se pudo actualizar');return;}
+      hydrate().then(function(){toast('Partido actualizado'); if(cambia) ir('depmatch',{id:dm.pid},true);});
+    });
+  }
+  if(!cambia) return enviar();
+  var ex=GOL_IDX[dm.pid]||{goles:[],tarjetas:[]};
+  var nom=function(id){return EQ[id]?titulo(EQ[id].n):id;};
+  var lineas=[];
+  if(l!==dm.eqL) lineas.push('Local: <b>'+esc(nom(dm.eqL))+'</b> pasa a ser <b>'+esc(nom(l))+'</b>.');
+  if(v!==dm.eqV) lineas.push('Visitante: <b>'+esc(nom(dm.eqV))+'</b> pasa a ser <b>'+esc(nom(v))+'</b>.');
+  if(ex.goles.length||ex.tarjetas.length) lineas.push('Se borrarán los goles y tarjetas ya anotados a jugadores del equipo que sale.');
+  peligro({titulo:'¿Cambiar los equipos de este partido?',lineas:lineas,boton:'Sí, cambiar equipos',palabra:null,onOk:function(listo){listo();enviar();}});
+}
+/* ---- ventana de advertencia para acciones delicadas ---- */
+function peligro(o){
+  var prev=document.getElementById('ovPel'); if(prev)prev.remove();
+  var ov=document.createElement('div'); ov.id='ovPel';
+  ov.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(6,8,24,.78);display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML='<div class="card" style="max-width:430px;width:100%;padding:20px;border:2px solid #c0392b">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="width:34px;height:34px;border-radius:50%;background:#c0392b;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:19px;flex:0 0 34px">!</span>'
+    +'<h2 style="margin:0;font-size:18px;line-height:1.25">'+esc(o.titulo)+'</h2></div>'
+    +'<ul class="pl" style="margin:6px 0 12px;padding-left:18px;font-size:13.5px;line-height:1.5">'+(o.lineas||[]).map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>'
+    +(o.palabra?'<p style="margin:0 0 6px;font-size:12.5px;font-weight:700">Para confirmar, escribe <b>'+esc(o.palabra)+'</b>:</p><input id="ovPelIn" autocomplete="off" autocapitalize="characters" style="width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-weight:700;letter-spacing:.06em;background:var(--card);color:var(--ink)">':'')
+    +'<div id="ovPelMsg"></div>'
+    +'<div style="display:flex;gap:10px;margin-top:14px"><button class="btn line" style="flex:1" id="ovPelNo">Cancelar</button><button class="btn rojo" style="flex:1" id="ovPelSi"'+(o.palabra?' disabled':'')+'>'+esc(o.boton||'Sí, borrar')+'</button></div></div>';
+  document.body.appendChild(ov);
+  var si=document.getElementById('ovPelSi'), inp=document.getElementById('ovPelIn');
+  document.getElementById('ovPelNo').onclick=function(){ov.remove();};
+  if(inp){inp.oninput=function(){si.disabled=inp.value.trim().toUpperCase()!==o.palabra;};setTimeout(function(){try{inp.focus();}catch(e){}},50);}
+  si.onclick=function(){ if(si.disabled)return; si.disabled=true; si.textContent='Procesando…';
+    o.onOk(function(){ov.remove();},function(m){var mm=document.getElementById('ovPelMsg');if(mm)mm.innerHTML='<div class="aviso">'+esc(m||'No se pudo completar.')+'</div>';si.disabled=false;si.textContent=o.boton||'Sí, borrar';}); };
+}
+function partidoBorrarFlujo(){
+  var dm=window.__dm||{}; var pr=((DATA.partidos||[]).concat(CAMP.partidos||[])).filter(function(x){return x.id===dm.pid;})[0]||{};
+  var ex=GOL_IDX[dm.pid]||{goles:[],tarjetas:[]};
+  var nom=function(id){return EQ[id]?titulo(EQ[id].n):'';};
+  var lineas=['Partido: <b>'+esc(nom(dm.eqL))+' vs '+esc(nom(dm.eqV))+'</b>'+(pr.f?' del '+esc(fechaChip(pr.f)):'')+'.',
+    'Desaparece del calendario, de los resultados y de las tablas de todos los socios.'];
+  if(pr.gl!=null) lineas.push('Tiene marcador cargado (<b>'+pr.gl+' : '+pr.gv+'</b>): los puntos de la tabla se recalculan sin él.');
+  if(ex.goles.length||ex.tarjetas.length) lineas.push('Se borran también sus goles y tarjetas registrados.');
+  lineas.push('<b>No se puede deshacer.</b>');
+  peligro({titulo:'¿Borrar este partido?',lineas:lineas,palabra:'BORRAR',boton:'Borrar partido',onOk:function(listo,fallo){
+    adminPost({accion:'partido_del',partido_id:dm.pid}).then(function(r){
+      if(!r.ok) return fallo(r.msg);
+      listo(); hydrate().then(function(){ ir('deportes',{seg:'result'},true); toast('Partido borrado'); });
+    });
+  }});
 }
 /* ---- crear partido nuevo (se refleja al instante, sin publicar versión) ---- */
 function depCrear(){
@@ -2917,7 +2994,8 @@ function depJugadores(){
     DATA.categorias.map(function(c){var n=DATA.equipos.filter(function(e){return e.cat===c.id;}).length;if(!n)return '';return '<button class="chip'+(cat===c.id?' on':'')+'" onclick="ir(\'deportes\',{seg:\'jug\',jcat:\''+c.id+'\'},true)">'+esc(c.n)+'</button>';}).join('')+'</div>';
   if(!eq){
     var eqs=DATA.equipos.filter(function(e){return !cat||e.cat===cat;}).sort(function(a,b){return (a.cat+a.n).localeCompare(b.cat+b.n);});
-    h+='<div class="nota" style="margin:2px 0 10px">Elige un equipo para ver y administrar su nómina.</div>';
+    h+='<div class="nota" style="margin:2px 0 10px">Elige un equipo para ver y administrar su nómina, o crea uno nuevo.</div>';
+    h+='<button class="btn line" id="eqNuevoBtn" style="margin:0 0 12px" onclick="eqFormRender(null,\''+(cat||'')+'\')">+ Nuevo equipo</button><div id="eqForm"></div>';
     h+='<div class="row-list">'+eqs.map(function(e){
       return '<button class="li" onclick="ir(\'deportes\',{seg:\'jug\',jcat:\''+(cat||'')+'\',jeq:\''+e.id+'\'},true)">'+badge(e,34)+
         '<div class="tx" style="margin-left:10px"><b>'+esc(titulo(e.n))+'</b><span>'+esc(CAT[e.cat]?CAT[e.cat].n:e.cat)+' · '+(e.j?e.j.length:0)+' jugadores</span></div><span class="ar">'+sv(IC.chevron)+'</span></button>';
@@ -2937,7 +3015,60 @@ function depJugadores(){
   }).join('')+'</div></div>';
   h+='<button class="btn line" style="margin-top:12px" onclick="jugNuevo()">+ Añadir jugador</button>';
   h+='<div id="jugForm"></div>';
+  h+='<button class="btn line" style="margin-top:12px" onclick="eqFormRender(\''+e.id+'\')">Editar equipo (nombre y delegado)</button><div id="eqForm"></div>';
+  h+='<div class="peligro-zona"><h4>Borrar este equipo</h4><p>Borra el equipo, su nómina y todos sus partidos. No se puede deshacer.</p><button class="btn rojo" onclick="eqBorrarFlujo(\''+e.id+'\')">Borrar equipo</button></div>';
   return h;
+}
+/* ---- equipos de las Olimpiadas: crear, editar, borrar ---- */
+function eqFormRender(id,catDef){
+  var c=document.getElementById('eqForm');if(!c)return;
+  var e=id?EQ[id]:null;
+  var cats=(DATA.categorias||[]).map(function(x){return '<option value="'+x.id+'"'+((catDef||'')===x.id?' selected':'')+'>'+esc(x.n)+'</option>';}).join('');
+  c.innerHTML='<div class="card" style="padding:14px;margin-top:4px;margin-bottom:12px">'+
+    '<h3 style="font-weight:800;margin:0 0 10px">'+(e?'Editar equipo':'Nuevo equipo')+'</h3>'+
+    '<div class="field"><label>Nombre del equipo</label><input id="eqN" value="'+esc(e?titulo(e.n):'')+'" placeholder="Ej. Los Halcones"></div>'+
+    (e?'<div class="field"><label>Categoría</label><input value="'+esc(CAT[e.cat]?CAT[e.cat].n:e.cat)+'" disabled></div>'
+      :'<div class="field"><label>Categoría</label><select id="eqC"><option value="">Elige…</option>'+cats+'</select></div>')+
+    '<div class="field"><label>Delegado (opcional)</label><input id="eqD" value="'+esc(e&&e.del?titulo(e.del):'')+'" placeholder="Nombre del delegado"></div>'+
+    (e?'<div class="nota" style="margin:4px 0 6px">El escudo del equipo se busca por su nombre: si cambias el nombre, avisa al administrador para que el escudo siga apareciendo.</div>':'<div class="nota" style="margin:4px 0 6px">El equipo aparece al instante en la app. Después agrega su nómina y crea sus partidos.</div>')+
+    '<div id="eqErr"></div>'+
+    '<button class="btn" id="eqSave" style="margin-top:10px" onclick="eqGuardar(\''+(id||'')+'\')">'+(e?'Guardar cambios':'Crear equipo')+'</button>'+
+    '<button class="btn ghost" onclick="document.getElementById(\'eqForm\').innerHTML=\'\'">Cancelar</button></div>';
+  c.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function eqGuardar(id){
+  var g=function(x){return ((document.getElementById(x)||{}).value||'').trim();};
+  var n=g('eqN'),cat=g('eqC'),d=g('eqD'),err=document.getElementById('eqErr'),b=document.getElementById('eqSave');
+  function bad(m){if(err)err.innerHTML='<div class="aviso">'+esc(m)+'</div>';}
+  if(n.length<2)return bad('Escribe el nombre del equipo.');
+  if(!id&&!cat)return bad('Elige la categoría del equipo.');
+  if(b){b.disabled=true;b.textContent='Guardando…';}
+  var payload=id?{accion:'equipo_edit',id:id,nombre:n,delegado:d}:{accion:'equipo_add',tor:'olimpiadas2026',cat:cat,nombre:n,delegado:d};
+  adminPost(payload).then(function(r){
+    if(!r||!r.ok){if(b){b.disabled=false;b.textContent=id?'Guardar cambios':'Crear equipo';}return bad((r&&r.msg)||'No se pudo guardar.');}
+    hydrate().then(function(){
+      if(id){toast('Equipo actualizado');}
+      else{toast('Equipo creado');var nid=(r.equipo&&r.equipo.id)||'';ir('deportes',{seg:'jug',jcat:cat,jeq:nid},true);}
+    });
+  });
+}
+function eqBorrarFlujo(id){
+  var e=EQ[id];if(!e)return;
+  var ps=(DATA.partidos||[]).concat(CAMP.partidos||[]).filter(function(p){return p.l===id||p.v===id;});
+  var conRes=ps.filter(function(p){return p.gl!=null;}).length;
+  var pu=(DATA.pruebas||[]).filter(function(x){return x.equipo_id===id;}).length;
+  var nj=(e.j||[]).length;
+  var lineas=['Equipo: <b>'+esc(titulo(e.n))+'</b> ('+esc(CAT[e.cat]?CAT[e.cat].n:e.cat)+').',
+    'Se borran <b>'+ps.length+' partido'+(ps.length===1?'':'s')+'</b>'+(conRes?', de ellos <b>'+conRes+' con marcador</b>: las tablas se recalculan sin esos resultados':'')+'.',
+    'Se borra su nómina: <b>'+nj+' jugador'+(nj===1?'':'es')+'</b>. Esos socios ya no podrán entrar con ese equipo.'];
+  if(pu) lineas.push('Se borran sus <b>'+pu+'</b> puestos de Natación y Carrera.');
+  lineas.push('<b>No se puede deshacer.</b> Si solo quieres corregir el nombre, usa Editar equipo.');
+  peligro({titulo:'¿Borrar este equipo?',lineas:lineas,palabra:'BORRAR',boton:'Borrar equipo',onOk:function(listo,fallo){
+    adminPost({accion:'equipo_del',id:id}).then(function(r){
+      if(!r.ok) return fallo(r.msg);
+      listo(); hydrate().then(function(){ ir('deportes',{seg:'jug',jcat:e.cat},true); toast('Equipo borrado'); });
+    });
+  }});
 }
 function jugNuevo(){jugFormRender({});}
 function jugEditar(id){var e=EQ[window.__jeq]||{};var j=(e.j||[]).filter(function(x){return x.id===id;})[0]||{};jugFormRender(j);
