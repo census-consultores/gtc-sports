@@ -3066,7 +3066,7 @@ function eqBorrarFlujo(id){
   peligro({titulo:'¿Borrar este equipo?',lineas:lineas,palabra:'BORRAR',boton:'Borrar equipo',onOk:function(listo,fallo){
     adminPost({accion:'equipo_del',id:id}).then(function(r){
       if(!r.ok) return fallo(r.msg);
-      listo(); hydrate().then(function(){ ir('deportes',{seg:'jug',jcat:e.cat},true); toast('Equipo borrado'); });
+      listo(); hydrate().then(function(){ if(esCampEq(e)) ir('deportes',{seg:'camp',ct:e.tor},true); else ir('deportes',{seg:'jug',jcat:e.cat},true); toast('Equipo borrado'); });
     });
   }});
 }
