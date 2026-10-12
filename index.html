@@ -547,9 +547,11 @@ function fechaChip(iso){if(!iso)return '';if(iso===hoyISO())return 'Hoy';var d=d
 /* ---------- iconos ---------- */
 function sv(d){return '<svg class="i" viewBox="0 0 24 24">'+d+'</svg>';}
 var DEPSET={futbol:1,tenis:1,natacion:1,carrera:1,pingpong:1,beachtenis:1,padel:1,beachvolley:1,cuarenta:1,basquet:1,pickleball:1};
-function svdSvg(id){return '<svg class="i" viewBox="0 0 24 24" style="fill:#fff;stroke:none">'+(DIC[id]||'<circle cx="12" cy="12" r="7"/>')+'</svg>';}
+/* íconos de deporte: SIEMPRE las imágenes reales (logos/depc). Sin dibujos de respaldo. */
+var LOGO_REMOTO='https://zwuieoenhwychdbzrsif.supabase.co/storage/v1/object/public/logos/';
+function svdSvg(id){return '<svg class="i" viewBox="0 0 24 24" style="fill:none;stroke:#fff;stroke-width:1.8">'+IC.torneos+'</svg>';}
 function svd(id){ if(DEPSET[id]) return '<img class="depimg" data-d="'+id+'" src="'+LOGO_BASE+'depc/'+id+'.png" alt="" onerror="depFail(this)">'; return svdSvg(id); }
-function depFail(img){ try{ img.insertAdjacentHTML('afterend', svdSvg(img.getAttribute('data-d')||'')); img.remove(); }catch(e){ try{img.style.display='none';}catch(_){} } }
+function depFail(img){ try{ var d=img.getAttribute('data-d')||''; if(!img.getAttribute('data-r')){ img.setAttribute('data-r','1'); img.src=LOGO_REMOTO+'depc/'+d+'.png'; return; } img.style.visibility='hidden'; }catch(e){ try{img.style.visibility='hidden';}catch(_){} } }
 var IC={
  inicio:'<path d="M3.5 10.5 12 4l8.5 6.5V20a1 1 0 0 1-1 1h-5v-6h-5v6h-5a1 1 0 0 1-1-1z"/>',
  torneos:'<path d="M7 4h10v3a5 5 0 0 1-10 0z"/><path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3"/><path d="M12 12v4M9 20h6M10 20l.4-4M14 20l-.4-4"/>',
@@ -576,21 +578,7 @@ var IC={
  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r=".6" fill="currentColor"/>',
  casa2:'<path d="M4 20.5h16M6 20.5V10l6-4 6 4v10.5M10 20.5v-5h4v5"/>'
 };
-/* disciplinas (familia propia, mismo grosor) */
-var DIC={
- futbol:'<path fill-rule="evenodd" d="M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zm0 4.3l3.15 2.29-1.2 3.7h-3.9L8.85 9.39 12 7.1z"/>',
- tenis:'<path fill-rule="evenodd" d="M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zM6.2 6.0a7.4 7.4 0 000 12 6.2 6.2 0 010-12zm11.6 0a6.2 6.2 0 010 12 7.4 7.4 0 000-12z"/>',
- natacion:'<path d="M17.4 5.1a2 2 0 11-2 2 2 2 0 012-2zM3 13.2c1.6 0 1.7 1.35 3.1 1.35S7.6 13.2 9.2 13.2s1.7 1.35 3.1 1.35 1.55-1.35 3.15-1.35 1.7 1.35 3.1 1.35v2c-1.6 0-1.75-1.35-3.1-1.35s-1.55 1.35-3.15 1.35-1.7-1.35-3.1-1.35-1.55 1.35-3.1 1.35-1.75-1.35-3.1-1.35zM6.2 11.5l4.6-3.7 2.9 1.9-2.2 2.4c-.7-.35-1.5-.35-2.2 0z"/>',
- carrera:'<path d="M12 4.2A7.8 7.8 0 1019.8 12 7.8 7.8 0 0012 4.2zm.9 3.1a.9.9 0 00-1.8 0v4.3l3 2.05a.9.9 0 001.02-1.48L12.9 10.8z"/><path d="M9.4 2.2h5.2a.95.95 0 010 1.9H9.4a.95.95 0 010-1.9z"/>',
- pingpong:'<path d="M13.4 3.1c-2.6-1-5.6-.3-7.5 1.6-2.2 2.2-2.7 5.4-1.4 8.1l-1.2 1.2a1.3 1.3 0 001.8 1.8l1.2-1.2c.5.25 1 .43 1.55.54l4.3-4.3a2 2 0 00-.02-.04l4.25-4.25c-.65-1.5-1.8-2.75-3.31-3.45zM17.6 8.2l-6.05 6.05 3.5 3.5a2.35 2.35 0 003.32-3.32l-1.4-1.4 1.4-1.4a2 2 0 000-2.83z"/><circle cx="18.4" cy="6.0" r="1.5"/>',
- beachtenis:'<path d="M10.6 2.5c-3.5 0-6.3 3.1-6.3 6.9 0 3.5 2.4 6.4 5.5 6.85l-.02 3.15a1.1 1.1 0 002.2 0V16.25c3.06-.5 5.45-3.35 5.45-6.85 0-3.8-2.8-6.9-6.28-6.9z"/><circle cx="18.8" cy="16" r="2.1"/>',
- padel:'<path fill-rule="evenodd" d="M12 2.5c-3.6 0-6.5 2.9-6.5 6.4 0 3.1 2.2 5.7 5.1 6.3V18H9a1 1 0 000 2h6a1 1 0 000-2h-1.6v-2.8c2.9-.6 5.1-3.2 5.1-6.3 0-3.5-2.9-6.4-6.5-6.4zM9.3 6.2a1 1 0 110 2 1 1 0 010-2zm2.7 0a1 1 0 110 2 1 1 0 010-2zm2.7 0a1 1 0 110 2 1 1 0 010-2zM9.3 9.5a1 1 0 110 2 1 1 0 010-2zm2.7 0a1 1 0 110 2 1 1 0 010-2zm2.7 0a1 1 0 110 2 1 1 0 010-2z"/>',
- beachvolley:'<path fill-rule="evenodd" d="M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zm0 2a7.2 7.2 0 016.9 5.15c-2.6-.5-5.2-.1-7.6 1.15V4.85A7.4 7.4 0 0112 4.8zM9.3 5.35v7.2c-1.7 1.4-3 3.25-3.75 5.35A7.2 7.2 0 019.3 5.35zM12 19.2c-.55 0-1.08-.06-1.6-.17.55-2.6 2-4.85 4.15-6.35 1.5-.5 3.05-.6 4.55-.3A7.2 7.2 0 0112 19.2z"/>',
- cuarenta:'<path d="M9.8 4.1L4.6 6.0a1.6 1.6 0 00-.95 2.05l3.15 8.65a1.6 1.6 0 002.05.95l.6-.22-2.4-6.6a2.6 2.6 0 011.55-3.33l3.05-1.1-.9-2.0a1.6 1.6 0 00-2.05-.95z"/><path d="M11.2 7.6l5.2-.5a1.6 1.6 0 011.75 1.45l.9 9.15a1.6 1.6 0 01-1.45 1.75l-5.2.5A1.6 1.6 0 0110.65 18.5l-.9-9.15A1.6 1.6 0 0111.2 7.6z"/>',
- basquet:'<path fill-rule="evenodd" d="M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zm5.9 4.1c-1.15.9-1.95 2.2-2.25 3.7-.2 1-.2 2 0 3 .3 1.5 1.1 2.8 2.25 3.7a7.3 7.3 0 000-10.4zM12 4.6c.42 0 .83.03 1.23.1-.62 1.02-1.02 2.2-1.18 3.45-.08.6-.08 1.2-.05 1.85h-.001V4.6zm-1.23.1c.62 1.02 1.02 2.2 1.18 3.45H12 11.05c-.16-1.25-.56-2.43-1.18-3.45.4-.07.81-.1 1.23-.1zM6.1 6.9a7.3 7.3 0 000 10.4c1.15-.9 1.95-2.2 2.25-3.7.2-1 .2-2 0-3-.3-1.5-1.1-2.8-2.25-3.7zM12 19.4c-.42 0-.83-.03-1.23-.1.62-1.02 1.02-2.2 1.18-3.45.05-.4.07-.8.06-1.2H12v4.75zm1.23-.1c-.62-1.02-1.02-2.2-1.18-3.45h1.9c-.16 1.25-.56 2.43-1.18 3.45.16.03.31.05.46.05z"/>',
- pickleball:'<path d="M11 2.7c-4 .5-6.9 3.6-6.9 7.2 0 3.4 2.5 6.1 5.9 6.6V18H8.2a1 1 0 000 2h7.6a1 1 0 000-2H13v-1.5c3.4-.5 5.9-3.2 5.9-6.6 0-4.3-3.9-7.6-7.9-7.2zM9 6.6a1 1 0 110 2 1 1 0 010-2zm3.5 0a1 1 0 110 2 1 1 0 010-2zM9 10a1 1 0 110 2 1 1 0 010-2zm3.5 0a1 1 0 110 2 1 1 0 010-2z"/>'
-};
-function discIcon(id){return DIC[id]||IC.torneos;}
+
 function discColor(id){return (DIS[id]&&DIS[id].c)||'#2E3A86';}
 
 /* ---------- badges de equipo / bandera ---------- */
@@ -792,7 +780,7 @@ function partSide(side,extra){
 }
 function matchCard(p){
   p=liveState(p);
-  var col=discColor(p.disc), dic=discIcon(p.disc);
+  var col=discColor(p.disc);
   var dnom=(DIS[p.disc]&&DIS[p.disc].n)||'Fútbol';
   var catn=p.cat?((CAT[p.cat]&&CAT[p.cat].n)||p.cat):(p.label||'');
   var badge_='';
