@@ -447,7 +447,7 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
 .avchk input{width:17px;height:17px;flex:0 0 17px;margin:1px 0 0;accent-color:var(--navy)}
 .avcnt{font-size:12.5px;color:var(--muted);margin:10px 0 2px}
 .avcnt b{color:var(--ink)}
-.avlog .li .tx span{white-space:normal}
+.avlog .li .tx span{white-space:normal;display:block}
 .avtag{font-size:10.5px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;padding:3px 7px;border-radius:7px;background:rgba(27,32,80,.08);color:var(--navy);margin-left:auto;flex:0 0 auto}
 @media (min-width:900px){
   html.ws .savebar .avchk{grid-column:2;margin-top:0}
@@ -3737,7 +3737,7 @@ function avHistorial(){
     box.innerHTML=(r.avisos||[]).length?(r.avisos||[]).map(function(a){
       var f=a.creado?new Date(a.creado):null, ft=f?f.toLocaleDateString('es-EC',{day:'numeric',month:'short'})+' '+f.toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'}):'';
       var para=a.tipo==='anuncio'?(a.alcance==='todos'?'Todos los socios':String(a.alcance||'').replace(/^categoría (\w+)/,function(m,c){return 'Categoría '+((CAT[c]||{}).n||c);}).replace(/^equipo (.+)/,function(m,e){return 'Equipo '+titulo((EQ[e]||{}).n||e);})):'Los dos equipos';
-      return '<div class="li"><div class="tx"><b>'+esc(a.titulo||'')+'</b><span>'+esc(a.cuerpo||'')+'</span><span style="font-size:11px;color:var(--muted-2)">'+esc(ft)+' · '+esc(para)+' · '+(a.push||0)+' notif. · '+(a.correos||0)+' correos'+(a.error?' · con error':'')+'</span></div><span class="avtag">'+esc(T[a.tipo]||a.tipo)+'</span></div>';
+      return '<div class="li"><div class="tx"><b>'+esc(a.titulo||'')+'</b><span>'+esc(a.cuerpo||'')+'</span><span style="display:block;margin-top:3px;font-size:11px;color:var(--muted-2)">'+esc(ft)+' · '+esc(para)+' · '+(a.push||0)+' notif. · '+(a.correos||0)+' correos'+(a.error?' · con error':'')+'</span></div><span class="avtag">'+esc(T[a.tipo]||a.tipo)+'</span></div>';
     }).join(''):'<div class="nota">Todavía no se ha enviado ningún aviso.</div>';
   });
 }
