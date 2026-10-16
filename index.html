@@ -3508,32 +3508,19 @@ function cargarAnalitica(dias){
   adminPost({accion:'analitica',dias:dias}).then(function(r){
     var c=document.getElementById('anBody');if(!c)return;
     if(!r.ok){c.innerHTML='<div class="aviso">'+esc(r.msg||'No se pudo cargar.')+'</div>';return;}
-    var tel=r.telefonos||{},nT=(tel.android||0)+(tel.ios||0);
     function k(n,t,sub){return '<div class="kpi"><b>'+(n==null?'—':n)+'</b><span>'+t+'</span>'+(sub?'<small style="display:block;font-size:10.5px;color:var(--muted-2);margin-top:3px;line-height:1.3">'+sub+'</small>':'')+'</div>';}
-    var h=secHead('Socios en estos '+r.dias+' días');
-    h+='<div class="kpis" style="--n:2;margin-bottom:6px">'+
-      k(nT,'Teléfonos con la app','Android '+(tel.android||0)+' · iPhone '+(tel.ios||0))+
+    var ap=r.avisosPl||{};
+    var h=secHead('Teléfonos con la app');
+    h+='<div class="kpis" style="--n:3;margin-bottom:6px">'+
+      k(r.avisos,'Total','con avisos activados')+
+      k(ap.ios||0,'iPhone','App Store')+
+      k(ap.android||0,'Android','Google Play')+'</div>';
+    h+='<div class="nota" style="margin:8px 0 4px">Se cuentan los teléfonos que tienen la app instalada desde su tienda y activaron las notificaciones: solo la app instalada puede activarlas. Quien instaló la app pero no aceptó los avisos no aparece aquí. Es una cifra al día de hoy.</div>';
+    h+=secHead('Socios en estos '+r.dias+' días');
+    h+='<div class="kpis" style="--n:3;margin-bottom:6px">'+
       k(r.socios,'Socios que entraron','con su código de socio')+
       k(r.paginas,'Páginas vistas','en la app y en la web')+
-      k(r.web,'Visitantes en la web','gtcsports.ec en un navegador')+'</div>';
-    var td=r.tiendas||{},ap=r.avisosPl||{};
-    h+=secHead('Descargas en las tiendas');
-    h+='<div class="kpis" style="--n:2;margin-bottom:6px">'+
-      k(td.ios,'App Store (iPhone)',td.ios!=null?'según App Store Connect':'sin cifra cargada')+
-      k(td.android,'Google Play (Android)',td.android!=null?'según Play Console':'sin cifra cargada')+'</div>';
-    h+='<div class="nota" style="margin:8px 0 4px">'+(td.fecha?'Cifras al '+esc(fLarga(td.fecha).toLowerCase())+(td.nota?' · '+esc(td.nota):'')+'. ':'')+
-      'Apple y Google no envían estas cifras a la app: se copian de sus consolas. Lo que la app sí confirma sola: '+(ap.ios||0)+' iPhone y '+(ap.android||0)+' Android tienen la app instalada con los avisos activados.</div>';
-    if(gtcAuth.esSuper())h+='<details class="acc" style="margin:8px 0 4px;background:var(--card);border-radius:14px;border:1px solid var(--line)"><summary style="padding:12px 15px">Actualizar las descargas</summary><div class="bd" style="padding:0 15px 14px">'+
-      '<div class="field"><label>App Store (iPhone)</label><input id="dsI" inputmode="numeric" value="'+(td.ios!=null?td.ios:'')+'"></div>'+
-      '<div class="field"><label>Google Play (Android)</label><input id="dsA" inputmode="numeric" value="'+(td.android!=null?td.android:'')+'"></div>'+
-      '<div class="field"><label>Fecha de las cifras</label><input id="dsF" type="date" value="'+esc(td.fecha||'')+'"></div>'+
-      '<div class="field"><label>Nota (opcional)</label><input id="dsN" maxlength="160" value="'+esc(td.nota||'')+'"></div>'+
-      '<button class="btn" onclick="guardarDescargas('+r.dias+')">Guardar cifras</button></div></details>';
-    h+=secHead('Al día de hoy');
-    h+='<div class="kpis" style="--n:2;margin-bottom:6px">'+
-      k(r.cuentas,'Cuentas de socios','registradas en la app')+
-      k(r.avisos,'Teléfonos con avisos','notificaciones activadas')+'</div>';
-    h+='<div class="nota" style="margin:8px 0 4px">«Teléfonos con la app» cuenta cada teléfono que abrió la app instalada en el periodo (no el navegador del teléfono). Una reinstalación cuenta como un teléfono nuevo.</div>';
+      k(r.cuentas,'Cuentas de socios','registradas al día de hoy')+'</div>';
     if(r.vistas&&r.vistas.length){h+=secHead('Lo que más miran los socios');
       h+='<div class="card"><div style="padding:6px 15px">'+r.vistas.map(function(v){return '<div class="player"><span class="nm" style="flex:1">'+esc(nombreVista(v[0]))+'</span><span class="rr">'+v[1]+'</span></div>';}).join('')+'</div></div>';}
     if(r.topSocios&&r.topSocios.length){h+=secHead('Socios que iniciaron sesión');
@@ -3546,11 +3533,6 @@ function cargarAnalitica(dias){
     h+='<div class="nota" style="margin-top:12px">No se cuentan como socios: el equipo GTC (Directiva, Comisión, Deportes y superadministrador: '+(eq.dispositivos||0)+' dispositivos, '+(eq.paginas||0)+' páginas), la cuenta demo del revisor de Apple, las pruebas automáticas ni los robots ('+(r.excluidos||0)+' registros).'+(r.desde&&new Date(r.desde).getTime()>Date.now()-(r.dias-1)*864e5?' La medición empezó el '+esc(fLarga(String(r.desde).slice(0,10)).toLowerCase())+', así que este periodo cubre menos días.':'')+'</div>';
     c.innerHTML=h;
   });
-}
-function guardarDescargas(dias){
-  function v(id){return ((document.getElementById(id)||{}).value||'').trim();}
-  adminPost({accion:'descargas_guardar',ios:v('dsI'),android:v('dsA'),fecha:v('dsF'),nota:v('dsN')}).then(function(r){
-    toast(r.ok?'Cifras guardadas':(r.msg||'No se pudo guardar')); if(r.ok)cargarAnalitica(dias);});
 }
 function nombreVista(v){var m={inicio:'Inicio',torneos:'Torneos',torneo:'Detalle de torneo',calendario:'Calendario',novedades:'Novedades',mas:'Más',partido:'Detalle de partido',equipo:'Equipo',disciplina:'Disciplina',acceso:'Acceso',deportes:'Panel Deportes',depmatch:'Registrar resultado',avisos:'Enviar aviso',analitica:'Analítica',instalar:'Instalar app',notificaciones:'Notificaciones'};return m[v]||v;}
 

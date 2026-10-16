@@ -225,17 +225,6 @@ export default async function handler(req, res) {
     const puedeLeer = ROLES_READ.indexOf(sess.r) >= 0;
 
     // ---- ANALÍTICA (lectura) ----
-    if (accion === 'descargas_guardar') {
-      if (sess.r !== 'superadmin') return res.status(403).json({ ok: false, msg: 'Solo el superadministrador actualiza las descargas.' });
-      const num = v => (v === '' || v == null) ? null : (/^\d{1,7}$/.test(String(v).trim()) ? parseInt(v, 10) : NaN);
-      const ios = num(body.ios), android = num(body.android);
-      if (Number.isNaN(ios) || Number.isNaN(android)) return res.status(400).json({ ok: false, msg: 'Escribe solo números enteros.' });
-      const fch = /^\d{4}-\d{2}-\d{2}$/.test(String(body.fecha || '')) ? body.fecha : new Date(Date.now() - 5 * 3600000).toISOString().slice(0, 10);
-      const valor = JSON.stringify({ ios, android, fecha: fch, por: sess.c, nota: String(body.nota || '').slice(0, 160) });
-      await sb('gtc_config?on_conflict=clave', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: JSON.stringify({ clave: 'descargas_tiendas', valor }) });
-      return res.status(200).json({ ok: true });
-    }
-
     if (accion === 'analitica') {
       if (!puedeLeer) return res.status(403).json({ ok: false, msg: 'Sin permiso.' });
       const dias = Math.min(90, Math.max(1, parseInt(body.dias || 30, 10)));
@@ -278,14 +267,12 @@ export default async function handler(req, res) {
       try { const c = await fetch(URL + '/rest/v1/cuentas?select=id', { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, Prefer: 'count=exact', Range: '0-0' } }); cuentas = parseInt(String(c.headers.get('content-range') || '').split('/')[1], 10); } catch (e) { }
       const avPl = { ios: 0, android: 0 };
       try { const t = await sb('gtc_push_tokens?select=platform&limit=10000'); (t || []).forEach(x => { if (avPl[x.platform] != null) avPl[x.platform]++; }); avisos = (t || []).length; } catch (e) { }
-      let tiendas = null;
-      try { const g = await sb('gtc_config?select=valor&clave=eq.descargas_tiendas'); if (g && g[0]) tiendas = JSON.parse(g[0].valor); } catch (e) { }
       const primero = ev.length ? ev[ev.length - 1].created_at : null;
       return res.status(200).json({
         ok: true, v: 2, dias, desde: primero,
         telefonos: { android: disp.android.size, ios: disp.ios.size }, web: disp.web.size,
         socios: socios.size, logins, paginas: pv,
-        cuentas: isNaN(cuentas) ? null : cuentas, avisos: isNaN(avisos) ? null : avisos, avisosPl: avPl, tiendas,
+        cuentas: isNaN(cuentas) ? null : cuentas, avisos: isNaN(avisos) ? null : avisos, avisosPl: avPl,
         vistas: top(vistas).slice(0, 12), topSocios: top(quien).slice(0, 20),
         porDia: Object.keys(porDia).sort().map(d => [d, porDia[d].size]),
         equipo: { dispositivos: equipo.size, paginas: eqVistas },
