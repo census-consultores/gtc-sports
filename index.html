@@ -2671,7 +2671,7 @@ function track(tipo,extra){
     if(navigator.webdriver)return; /* pruebas automáticas: no se registran */
     var s=gtcAuth.sesion||{};
     var body=Object.assign({tipo:tipo,sesion:GTC_SID,rol:s.rol||null,socio:s.socio||null,nombre:s.nombre||null,
-      vista:S.vista,plataforma:plataforma(),standalone:isStandalone(),ua:(navigator.userAgent||'').slice(0,280)},extra||{});
+      vista:S.vista,plataforma:esNativo()?plataforma():'web',standalone:isStandalone(),ua:(navigator.userAgent||'').slice(0,280)},extra||{});
     fetch(SB_URL+'/rest/v1/eventos',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(body)}).catch(function(){});
   }catch(e){}
 }
@@ -3516,11 +3516,24 @@ function cargarAnalitica(dias){
       k(r.socios,'Socios que entraron','con su código de socio')+
       k(r.paginas,'Páginas vistas','en la app y en la web')+
       k(r.web,'Visitantes en la web','gtcsports.ec en un navegador')+'</div>';
+    var td=r.tiendas||{},ap=r.avisosPl||{};
+    h+=secHead('Descargas en las tiendas');
+    h+='<div class="kpis" style="--n:2;margin-bottom:6px">'+
+      k(td.ios,'App Store (iPhone)',td.ios!=null?'según App Store Connect':'sin cifra cargada')+
+      k(td.android,'Google Play (Android)',td.android!=null?'según Play Console':'sin cifra cargada')+'</div>';
+    h+='<div class="nota" style="margin:8px 0 4px">'+(td.fecha?'Cifras al '+esc(fLarga(td.fecha).toLowerCase())+(td.nota?' · '+esc(td.nota):'')+'. ':'')+
+      'Apple y Google no envían estas cifras a la app: se copian de sus consolas. Lo que la app sí confirma sola: '+(ap.ios||0)+' iPhone y '+(ap.android||0)+' Android tienen la app instalada con los avisos activados.</div>';
+    if(gtcAuth.esSuper())h+='<details class="acc" style="margin:8px 0 4px;background:var(--card);border-radius:14px;border:1px solid var(--line)"><summary style="padding:12px 15px">Actualizar las descargas</summary><div class="bd" style="padding:0 15px 14px">'+
+      '<div class="field"><label>App Store (iPhone)</label><input id="dsI" inputmode="numeric" value="'+(td.ios!=null?td.ios:'')+'"></div>'+
+      '<div class="field"><label>Google Play (Android)</label><input id="dsA" inputmode="numeric" value="'+(td.android!=null?td.android:'')+'"></div>'+
+      '<div class="field"><label>Fecha de las cifras</label><input id="dsF" type="date" value="'+esc(td.fecha||'')+'"></div>'+
+      '<div class="field"><label>Nota (opcional)</label><input id="dsN" maxlength="160" value="'+esc(td.nota||'')+'"></div>'+
+      '<button class="btn" onclick="guardarDescargas('+r.dias+')">Guardar cifras</button></div></details>';
     h+=secHead('Al día de hoy');
     h+='<div class="kpis" style="--n:2;margin-bottom:6px">'+
       k(r.cuentas,'Cuentas de socios','registradas en la app')+
       k(r.avisos,'Teléfonos con avisos','notificaciones activadas')+'</div>';
-    h+='<div class="nota" style="margin:8px 0 4px">«Teléfonos con la app» cuenta cada teléfono que abrió GTC Sports en el periodo. Las descargas exactas de App Store y Google Play se ven en App Store Connect y en Play Console. Una reinstalación cuenta como un teléfono nuevo.</div>';
+    h+='<div class="nota" style="margin:8px 0 4px">«Teléfonos con la app» cuenta cada teléfono que abrió la app instalada en el periodo (no el navegador del teléfono). Una reinstalación cuenta como un teléfono nuevo.</div>';
     if(r.vistas&&r.vistas.length){h+=secHead('Lo que más miran los socios');
       h+='<div class="card"><div style="padding:6px 15px">'+r.vistas.map(function(v){return '<div class="player"><span class="nm" style="flex:1">'+esc(nombreVista(v[0]))+'</span><span class="rr">'+v[1]+'</span></div>';}).join('')+'</div></div>';}
     if(r.topSocios&&r.topSocios.length){h+=secHead('Socios que iniciaron sesión');
@@ -3533,6 +3546,11 @@ function cargarAnalitica(dias){
     h+='<div class="nota" style="margin-top:12px">No se cuentan como socios: el equipo GTC (Directiva, Comisión, Deportes y superadministrador: '+(eq.dispositivos||0)+' dispositivos, '+(eq.paginas||0)+' páginas), la cuenta demo del revisor de Apple, las pruebas automáticas ni los robots ('+(r.excluidos||0)+' registros).'+(r.desde&&new Date(r.desde).getTime()>Date.now()-(r.dias-1)*864e5?' La medición empezó el '+esc(fLarga(String(r.desde).slice(0,10)).toLowerCase())+', así que este periodo cubre menos días.':'')+'</div>';
     c.innerHTML=h;
   });
+}
+function guardarDescargas(dias){
+  function v(id){return ((document.getElementById(id)||{}).value||'').trim();}
+  adminPost({accion:'descargas_guardar',ios:v('dsI'),android:v('dsA'),fecha:v('dsF'),nota:v('dsN')}).then(function(r){
+    toast(r.ok?'Cifras guardadas':(r.msg||'No se pudo guardar')); if(r.ok)cargarAnalitica(dias);});
 }
 function nombreVista(v){var m={inicio:'Inicio',torneos:'Torneos',torneo:'Detalle de torneo',calendario:'Calendario',novedades:'Novedades',mas:'Más',partido:'Detalle de partido',equipo:'Equipo',disciplina:'Disciplina',acceso:'Acceso',deportes:'Panel Deportes',depmatch:'Registrar resultado',avisos:'Enviar aviso',analitica:'Analítica',instalar:'Instalar app',notificaciones:'Notificaciones'};return m[v]||v;}
 
