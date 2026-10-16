@@ -3017,7 +3017,9 @@ function depResultados(){
     '<button class="chip'+(fs==='pend'?' on':'')+'" onclick="setF(\'fstate\',\'pend\')">Por registrar</button>'+
     '<button class="chip'+(fs==='hecho'?' on':'')+'" onclick="setF(\'fstate\',\'hecho\')">Con marcador</button></div>';
   h+='<div class="chips" style="margin-bottom:8px"><button class="chip wide'+(!fd?' on':'')+'" onclick="setF(\'fd\',\'\')">Todo deporte</button>'+
-    Object.keys(discs).map(function(d){return '<button class="chip'+(fd===d?' on':'')+'" onclick="setF(\'fd\',\''+d+'\')">'+esc(DIS[d]?DIS[d].n:d)+'</button>';}).join('')+'</div>';
+    Object.keys(discs).map(function(d){return '<button class="chip'+(fd===d?' on':'')+'" onclick="setF(\'fd\',\''+d+'\')">'+esc(DIS[d]?DIS[d].n:d)+'</button>';}).join('')+
+    /* Natación y Carrera van por puestos: abren su pantalla de puestos con la categoría elegida */
+    [['natacion','Natación'],['carrera','Carrera']].map(function(x){return '<button class="chip" title="Se registra por puestos" onclick="ir(\'deportes\',{seg:\'pruebas\',pd:\''+x[0]+'\',pc:\''+(fc&&DIS[x[0]]&&(DIS[x[0]].cats||[]).indexOf(fc)>=0?fc:'')+'\'},true)">'+x[1]+' · puestos</button>';}).join('')+'</div>';
   if(Object.keys(cats).length>1){
     h+='<div class="chips" style="margin-bottom:10px"><button class="chip wide'+(!fc?' on':'')+'" onclick="setF(\'fc\',\'\')">Toda categoría</button>'+
       DATA.categorias.filter(function(c){return cats[c.id];}).map(function(c){return '<button class="chip'+(fc===c.id?' on':'')+'" onclick="setF(\'fc\',\''+c.id+'\')">'+esc(c.n)+'</button>';}).join('')+'</div>';
