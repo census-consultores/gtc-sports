@@ -443,6 +443,16 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
   html.ws .savebar:not(:has(.plprev)) {grid-template-columns:1fr 300px}
 }
 #ovPel .pl li{margin:0 0 5px}
+.avchk{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.4;color:var(--muted);margin-top:12px;cursor:pointer}
+.avchk input{width:17px;height:17px;flex:0 0 17px;margin:1px 0 0;accent-color:var(--navy)}
+.avcnt{font-size:12.5px;color:var(--muted);margin:10px 0 2px}
+.avcnt b{color:var(--ink)}
+.avlog .li .tx span{white-space:normal}
+.avtag{font-size:10.5px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;padding:3px 7px;border-radius:7px;background:rgba(27,32,80,.08);color:var(--navy);margin-left:auto;flex:0 0 auto}
+@media (min-width:900px){
+  html.ws .savebar .avchk{grid-column:2;margin-top:0}
+  html.ws .avg{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:24px;align-items:start}
+}
 .aviso{background:rgba(214,69,69,.10);color:var(--rojo);border-radius:11px;padding:10px 13px;font-size:12px;font-weight:600;margin-top:12px}
 .demo{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);
   border:1px solid var(--gold);border-radius:20px;padding:5px 12px}
@@ -763,6 +773,8 @@ var gtcAuth = {
   /* Contactos de socios: superadministrador y Directorio (Directiva del Club) */
   puedeVerContactos:function(){var s=this.sesion||this.cargar();return !!(s&&(s.rol==='superadmin'||s.rol==='directorio'));},
   puedeEditar:function(){var s=this.sesion||this.cargar();return !!(s&&(s.rol==='superadmin'||s.rol==='deportes'));},
+  /* Enviar avisos (push + correo): Comisión de Deportes, Deportes y superadministrador */
+  puedeAvisar:function(){var s=this.sesion||this.cargar();return !!(s&&(s.rol==='superadmin'||s.rol==='deportes'||s.rol==='comision'));},
   loginAdmin:function(correo,clave){
     var self=this, c=String(correo||'').trim().toLowerCase(), k=String(clave||'');
     if(!c)return Promise.resolve({ok:false,campo:'correo',msg:'Escribe tu correo.'});
@@ -1879,6 +1891,7 @@ function vMas(){
     h+=secHead('Administración');
     h+='<div class="row-list">'+
       (gtcAuth.puedeEditar()?liNav('tabla','Panel de Deportes','Resultados, goles, tarjetas, equipos y jugadores',"ir('deportes',{})"):'')+
+      (gtcAuth.puedeAvisar()?liNav('bell','Enviar aviso','Anuncios a todos, a una categoría o a un equipo',"ir('avisos',{})"):'')+
       liNav('bell','Analítica de uso','Quién ingresa, qué visitan e instalaciones',"ir('analitica',{})")+
       (gtcAuth.puedeVerContactos()?liNav('correo','Contactos de socios','Correos y WhatsApp para comunicaciones',"ir('contactos',{})"):'')+
       (gtcAuth.esSuper()?liNav('info','Usuarios y roles','Base de datos de accesos del equipo',"ir('admin',{})"):'')+
@@ -1956,10 +1969,10 @@ function vNotificaciones(){
   var s=gtcAuth.cargar()||{};
   var tipos=[
     ['Enlace de acceso','Tu enlace para entrar a la app y a cada torneo',true],
-    ['Tu próximo partido','Aviso el día del partido con hora y cancha',true],
-    ['Cambio de horario o cancha','Si la Comisión reprograma tu partido',true],
+    ['Tu partido de hoy','El día del partido, a las 7:00, con hora y cancha',true],
+    ['Cambio de horario o cancha','Apenas la Comisión reprograma tu partido',true],
     ['Resultado de tu equipo','Cuando se registra el marcador',true],
-    ['Novedades del torneo','Anuncios generales de la Comisión',true]
+    ['Anuncios de la Comisión','Para todos, para tu categoría o para tu equipo',true]
   ];
   var h=backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Notificaciones</h1>';
   h+=secHead('Tu canal de avisos');
@@ -3003,7 +3016,7 @@ function vDeportes(){
   var seg=S.params.seg||'result';
   var h=backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Panel de Deportes</h1>';
   h+='<div class="seg" style="margin:14px 0">'+[['result','Resultados'],['pruebas','Natación y Carrera'],['crear','Crear partido'],['jug','Equipos'],['camp','Campeonatos']].map(function(x){
-    return '<button class="'+(seg===x[0]?'on':'')+'" onclick="ir(\'deportes\',{seg:\''+x[0]+'\'},true)">'+x[1]+'</button>';}).join('')+'</div>';
+    return '<button class="'+(seg===x[0]?'on':'')+'" onclick="ir(\'deportes\',{seg:\''+x[0]+'\'},true)">'+x[1]+'</button>';}).join('')+'<button onclick="ir(\'avisos\',{})">Enviar aviso</button></div>';
   h+= seg==='jug'? depJugadores() : seg==='crear'? depCrear() : seg==='camp'? depCampeonatos() : seg==='pruebas'? depPruebas() : depResultados();
   h+='</div>'+pie();
   return h;
@@ -3085,7 +3098,8 @@ function vDepMatch(){
     if(conPlan)h+='<h2 class="sec" style="margin-top:16px">Tarjetas</h2>';
     h+='<div class="eqs"><div>'+equipoBloque(eqL,'L')+'</div><div>'+equipoBloque(eqV,'V')+'</div></div>';
   }
-  h+='<div class="savebar">'+(conPlan?'<div id="plPrev" class="plprev"></div>':'')+'<div id="dmErr"></div>';
+  h+='<div class="savebar">'+(conPlan?'<div id="plPrev" class="plprev"></div>':'')+'<div id="dmErr"></div>'+
+    '<label class="avchk"><input type="checkbox" id="dmAvisar" checked> Avisar el resultado a los dos equipos (notificación y correo)</label>';
   h+=conPlan?'<button class="btn" id="dmSave" style="margin-top:14px" onclick="guardarPlanilla()">Guardar resultado</button>'
     :'<button class="btn" id="dmSave" style="margin-top:14px" onclick="guardarResultado()">Guardar marcador y estadísticas</button>';
   h+='</div>';
@@ -3094,6 +3108,7 @@ function vDepMatch(){
     '<div class="field"><label>Hora</label><input id="peH" value="'+esc(praw.h||'')+'" placeholder="16:30"></div>'+
     '<div class="field"><label>Sede</label><input id="peS" value="'+esc(praw.sede||'')+'"></div>'+
     peEquiposCampos(praw)+
+    '<label class="avchk" style="margin-top:6px"><input type="checkbox" id="peAvisar" checked> Si cambia la fecha, la hora o la sede, avisar de inmediato a los dos equipos</label>'+
     '<button class="btn line" style="margin-top:8px" onclick="guardarPartidoEdit()">Guardar cambios del partido</button></div></details>';
   h+='<div class="peligro-zona"><h4>Borrar este partido</h4><p>Lo quita del calendario, de los resultados y de las tablas. No se puede deshacer.</p><button class="btn rojo" onclick="partidoBorrarFlujo()">Borrar partido</button></div>';
   h+='</div>'+pie();
@@ -3176,7 +3191,7 @@ function planPrev(){
 }
 function guardarPlanilla(){
   var dm=window.__dm||{}, b=document.getElementById('dmSave'), err=document.getElementById('dmErr');
-  var det=planLeer(), payload={accion:'resultado',partido_id:dm.pid,goles:[],tarjetas:planTarjetas()};
+  var det=planLeer(), payload={accion:'resultado',partido_id:dm.pid,goles:[],tarjetas:planTarjetas(),avisar:avisarMarcado('dmAvisar')};
   if(planVacio(det)){
     if(dm.tieneRes){if(err)err.innerHTML='<div class="aviso">La planilla está vacía. Para corregir el resultado, escribe los sets de cada partido.</div>';return;}
     payload.gl='';payload.gv='';payload.detalle=null;}
@@ -3195,7 +3210,7 @@ function guardarPlanilla(){
   adminPost(payload).then(function(res){
     if(!res.ok){if(b){b.textContent='Guardar resultado';b.disabled=false;}if(err)err.innerHTML='<div class="aviso">'+esc(res.msg||'No se pudo guardar.')+'</div>';return;}
     track('resultado',{ref:dm.pid});
-    hydrate().then(function(){ ir('deportes',{seg:'result'},true); toast('Resultado guardado'); });
+    hydrate().then(function(){ ir('deportes',{seg:'result'},true); toast('Resultado guardado'+avisoTxt(res.aviso)); });
   });
 }
 function planTarjetas(){var t=[];
@@ -3228,10 +3243,10 @@ function guardarResultado(){
   var sumaG=goles.reduce(function(a,g){return a+g.cantidad;},0);
   if(gl!==''&&gv!==''){ /* aviso suave si goles individuales no cuadran, no bloquea */ }
   if(b){b.textContent='Guardando…';b.disabled=true;}
-  adminPost({accion:'resultado',partido_id:window.__dm.pid,gl:gl,gv:gv,goles:goles,tarjetas:tarjetas}).then(function(r){
+  adminPost({accion:'resultado',partido_id:window.__dm.pid,gl:gl,gv:gv,goles:goles,tarjetas:tarjetas,avisar:avisarMarcado('dmAvisar')}).then(function(r){
     if(!r.ok){if(b){b.textContent='Guardar marcador y estadísticas';b.disabled=false;}if(err)err.innerHTML='<div class="aviso">'+esc(r.msg||'No se pudo guardar.')+'</div>';return;}
     track('resultado',{ref:window.__dm.pid});
-    hydrate().then(function(){ ir('deportes',{seg:'result'},true); toast('Marcador guardado'); });
+    hydrate().then(function(){ ir('deportes',{seg:'result'},true); toast('Marcador guardado'+avisoTxt(r.aviso)); });
   });
 }
 function peEquiposCampos(praw){
@@ -3248,9 +3263,9 @@ function guardarPartidoEdit(){
   if(l&&v&&l===v){toast('El local y el visitante no pueden ser el mismo equipo');return;}
   var cambia=(l&&l!==dm.eqL)||(v&&v!==dm.eqV);
   function enviar(){
-    adminPost({accion:'partido_edit',partido_id:dm.pid,fecha:f,hora:hh,sede:ss,local_id:l,visita_id:v}).then(function(r){
+    adminPost({accion:'partido_edit',partido_id:dm.pid,fecha:f,hora:hh,sede:ss,local_id:l,visita_id:v,avisar:avisarMarcado('peAvisar')}).then(function(r){
       if(!r.ok){toast(r.msg||'No se pudo actualizar');return;}
-      hydrate().then(function(){toast('Partido actualizado'); if(cambia) ir('depmatch',{id:dm.pid},true);});
+      hydrate().then(function(){toast('Partido actualizado'+avisoTxt(r.aviso)); if(cambia) ir('depmatch',{id:dm.pid},true);});
     });
   }
   if(!cambia) return enviar();
@@ -3269,13 +3284,14 @@ function peligro(o){
   var prev=document.getElementById('ovPel'); if(prev)prev.remove();
   var ov=document.createElement('div'); ov.id='ovPel';
   ov.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(6,8,24,.78);display:flex;align-items:center;justify-content:center;padding:20px';
-  ov.innerHTML='<div class="card" style="max-width:430px;width:100%;padding:20px;border:2px solid #c0392b">'
-    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="width:34px;height:34px;border-radius:50%;background:#c0392b;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:19px;flex:0 0 34px">!</span>'
+  var _c=o.tono==='azul'?'var(--navy)':'#c0392b';
+  ov.innerHTML='<div class="card" style="max-width:430px;width:100%;padding:20px;border:2px solid '+_c+'">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="width:34px;height:34px;border-radius:50%;background:'+_c+';color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:19px;flex:0 0 34px">!</span>'
     +'<h2 style="margin:0;font-size:18px;line-height:1.25">'+esc(o.titulo)+'</h2></div>'
     +'<ul class="pl" style="margin:6px 0 12px;padding-left:18px;font-size:13.5px;line-height:1.5">'+(o.lineas||[]).map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>'
     +(o.palabra?'<p style="margin:0 0 6px;font-size:12.5px;font-weight:700">Para confirmar, escribe <b>'+esc(o.palabra)+'</b>:</p><input id="ovPelIn" autocomplete="off" autocapitalize="characters" style="width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-weight:700;letter-spacing:.06em;background:var(--card);color:var(--ink)">':'')
     +'<div id="ovPelMsg"></div>'
-    +'<div style="display:flex;gap:10px;margin-top:14px"><button class="btn line" style="flex:1" id="ovPelNo">Cancelar</button><button class="btn rojo" style="flex:1" id="ovPelSi"'+(o.palabra?' disabled':'')+'>'+esc(o.boton||'Sí, borrar')+'</button></div></div>';
+    +'<div style="display:flex;gap:10px;margin-top:14px"><button class="btn line" style="flex:1" id="ovPelNo">Cancelar</button><button class="btn'+(o.tono==='azul'?'':' rojo')+'" style="flex:1" id="ovPelSi"'+(o.palabra?' disabled':'')+'>'+esc(o.boton||'Sí, borrar')+'</button></div></div>';
   document.body.appendChild(ov);
   var si=document.getElementById('ovPelSi'), inp=document.getElementById('ovPelIn');
   document.getElementById('ovPelNo').onclick=function(){ov.remove();};
@@ -3512,7 +3528,7 @@ function cargarAnalitica(dias){
     c.innerHTML=h;
   });
 }
-function nombreVista(v){var m={inicio:'Inicio',torneos:'Torneos',torneo:'Detalle de torneo',calendario:'Calendario',novedades:'Novedades',mas:'Más',partido:'Detalle de partido',equipo:'Equipo',disciplina:'Disciplina',acceso:'Acceso',deportes:'Panel Deportes',depmatch:'Registrar resultado',analitica:'Analítica',instalar:'Instalar app',notificaciones:'Notificaciones'};return m[v]||v;}
+function nombreVista(v){var m={inicio:'Inicio',torneos:'Torneos',torneo:'Detalle de torneo',calendario:'Calendario',novedades:'Novedades',mas:'Más',partido:'Detalle de partido',equipo:'Equipo',disciplina:'Disciplina',acceso:'Acceso',deportes:'Panel Deportes',depmatch:'Registrar resultado',avisos:'Enviar aviso',analitica:'Analítica',instalar:'Instalar app',notificaciones:'Notificaciones'};return m[v]||v;}
 
 /* ==================================================================
    PWA · instalación
@@ -3621,10 +3637,115 @@ function copiarContactosCSV(){
 }
 function legacyCopy(t){try{var a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();}catch(e){}}
 
+
+/* ====================================================================
+   Enviar aviso (Comisión, Deportes, superadmin) · push + correo
+   ==================================================================== */
+function avisarMarcado(id){var c=document.getElementById(id);return c?!!c.checked:true;}
+function avisoTxt(a){
+  if(!a||a.omitido||a.repetido)return '';
+  if(a.ok===false&&!(a.push||a.correos))return ' · no se pudo enviar el aviso';
+  var n=(a.push||0),m=(a.correos||0);
+  if(!n&&!m)return ' · los equipos no tienen teléfonos ni correos registrados';
+  return ' · aviso enviado ('+n+' notificaci'+(n===1?'ón':'ones')+', '+m+' correo'+(m===1?'':'s')+')';
+}
+function avEstado(){return window.__av||(window.__av={alc:'todos',cat:'',eq:'',tit:'',msj:'',correo:true});}
+function avEquiposOpts(sel){
+  var g={};(DATA.equipos||[]).forEach(function(e){(g[e.cat]=g[e.cat]||[]).push(e);});
+  var h='<option value="">Elige el equipo…</option>';
+  (DATA.categorias||[]).forEach(function(c){var l=g[c.id];if(!l||!l.length)return;
+    h+='<optgroup label="Olimpiadas · '+esc(c.n)+'">'+l.slice().sort(function(a,b){return String(a.n).localeCompare(String(b.n));}).map(function(e){return '<option value="'+esc(e.id)+'"'+(e.id===sel?' selected':'')+'>'+esc(titulo(e.n))+'</option>';}).join('')+'</optgroup>';});
+  var ct={};(CAMP.equipos||[]).forEach(function(e){(ct[e.tor]=ct[e.tor]||[]).push(e);});
+  Object.keys(ct).forEach(function(t){var tn=((CAMP.torneos||[]).filter(function(x){return x.id===t;})[0]||{}).nombre||t;
+    h+='<optgroup label="'+esc(tn)+'">'+ct[t].map(function(e){return '<option value="'+esc(e.id)+'"'+(e.id===sel?' selected':'')+'>'+esc(titulo(e.n))+'</option>';}).join('')+'</optgroup>';});
+  return h;
+}
+function vAvisos(){
+  if(!gtcAuth.puedeAvisar())return backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Sin acceso</h1><p class="page-sub">Los avisos los envían la Comisión de Deportes, Deportes y el superadministrador.</p></div>'+pie();
+  var A=avEstado();
+  var h=backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Enviar aviso</h1>'+
+    '<p class="page-sub">Llega como notificación a los teléfonos con la app GTC Sports y por correo a los socios que autorizaron las comunicaciones del Club.</p>';
+  h+='<div class="avg"><div><div class="card" style="padding:16px;margin-top:14px">';
+  h+='<div class="field"><label>¿A quién va el aviso?</label><div class="seg" style="margin:4px 0 0">'+[['todos','Todos los socios'],['categoria','Una categoría'],['equipo','Un equipo']].map(function(x){
+    return '<button class="'+(A.alc===x[0]?'on':'')+'" onclick="avEstado().alc=\''+x[0]+'\';ir(\'avisos\',{},true)">'+x[1]+'</button>';}).join('')+'</div></div>';
+  if(A.alc==='categoria')h+='<div class="field"><label>Categoría</label><select id="avCat" onchange="avEstado().cat=this.value;avContar()"><option value="">Elige la categoría…</option>'+
+    (DATA.categorias||[]).map(function(c){return '<option value="'+c.id+'"'+(A.cat===c.id?' selected':'')+'>'+esc(c.n)+'</option>';}).join('')+'</select></div>';
+  if(A.alc==='equipo')h+='<div class="field"><label>Equipo</label><select id="avEq" onchange="avEstado().eq=this.value;avContar()">'+avEquiposOpts(A.eq)+'</select></div>';
+  h+='<div class="field"><label>Título</label><input id="avT" maxlength="60" placeholder="Ej.: Cambio de sede por lluvia" value="'+esc(A.tit)+'" oninput="avEstado().tit=this.value"></div>';
+  h+='<div class="field"><label>Mensaje <span id="avN" style="font-weight:600;color:var(--muted-2)">'+A.msj.length+'/240</span></label><textarea id="avM" maxlength="240" rows="4" style="width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;font:inherit;font-size:14px;resize:vertical" placeholder="Escribe el anuncio tal como lo leerán los socios." oninput="avEstado().msj=this.value;document.getElementById(\'avN\').textContent=this.value.length+\'/240\'">'+esc(A.msj)+'</textarea></div>';
+  h+='<label class="avchk"><input type="checkbox" id="avC"'+(A.correo?' checked':'')+' onchange="avEstado().correo=this.checked;avContar()"> Enviar también por correo</label>';
+  h+='<div id="avCnt" class="avcnt">Calculando destinatarios…</div><div id="avErr"></div>';
+  h+='<button class="btn" id="avSend" style="margin-top:12px" onclick="avEnviar()">Enviar aviso</button>';
+  h+='<button class="btn line" style="margin-top:8px" onclick="avPrueba()">Enviarme una prueba por correo</button>';
+  h+='</div><div class="nota" style="margin-top:10px">Además de estos anuncios, la app avisa sola a los dos equipos cuando se registra un resultado, cuando se cambia la fecha, la hora o la cancha de un partido, y el mismo día del partido (7:00) con la hora y la cancha.</div></div>';
+  h+='<div><h2 class="sec" style="margin-top:14px">Avisos enviados</h2><div id="avLog" class="row-list avlog"><div class="nota">Cargando…</div></div></div></div>';
+  h+='</div>'+pie();
+  setTimeout(function(){avContar();avHistorial();},60);
+  return h;
+}
+function avPayload(){var A=avEstado();return {alcance:A.alc,cat:A.cat,equipo_id:A.eq,titulo:A.tit,mensaje:A.msj,correo:A.correo};}
+function avListo(){var A=avEstado();if(A.alc==='categoria'&&!A.cat)return 'Elige la categoría.';if(A.alc==='equipo'&&!A.eq)return 'Elige el equipo.';return '';}
+function avContar(){
+  var box=document.getElementById('avCnt');if(!box)return;var A=avEstado(),f=avListo();
+  if(f){box.innerHTML=esc(f);return;}
+  box.textContent='Calculando destinatarios…';
+  adminPost(Object.assign({accion:'aviso_contar'},avPayload())).then(function(r){
+    if(!document.getElementById('avCnt'))return;
+    if(!r.ok){box.innerHTML='<span class="pe">'+esc(r.msg||'No se pudo calcular.')+'</span>';return;}
+    window.__avCnt=r;
+    box.innerHTML='Llegará a <b>'+r.telefonos+' teléfono'+(r.telefonos===1?'':'s')+'</b>'+(A.correo?' y <b>'+r.correos+' correo'+(r.correos===1?'':'s')+'</b>':'')+'.';
+  });
+}
+function avNombreAlcance(){var A=avEstado();
+  if(A.alc==='categoria')return 'la categoría '+((CAT[A.cat]||{}).n||A.cat);
+  if(A.alc==='equipo')return 'el equipo '+titulo((EQ[A.eq]||((CAMP.equipos||[]).filter(function(e){return e.id===A.eq;})[0])||{}).n||A.eq);
+  return 'todos los socios';}
+function avValidar(){
+  var A=avEstado(),err=document.getElementById('avErr'),f=avListo();
+  if(!f&&String(A.tit).trim().length<3)f='Escribe un título.';
+  if(!f&&String(A.msj).trim().length<5)f='Escribe el mensaje.';
+  if(err)err.innerHTML=f?'<div class="aviso">'+esc(f)+'</div>':'';
+  return !f;
+}
+function avEnviar(){
+  if(!avValidar())return; var A=avEstado(),c=window.__avCnt||{};
+  peligro({tono:'azul',titulo:'¿Enviar este aviso?',boton:'Sí, enviar',palabra:null,lineas:[
+    'Para: <b>'+esc(avNombreAlcance())+'</b>'+(c.telefonos!=null?' ('+c.telefonos+' teléfonos'+(A.correo?', '+c.correos+' correos':'')+')':'')+'.',
+    '<b>'+esc(A.tit)+'</b><br>'+esc(A.msj),
+    'Una vez enviado no se puede retirar.'],
+    onOk:function(listo,fallo){
+      adminPost(Object.assign({accion:'aviso_enviar'},avPayload())).then(function(r){
+        if(!r.ok){fallo(r.msg||'No se pudo enviar.');return;}
+        listo(); window.__av={alc:A.alc,cat:A.cat,eq:A.eq,tit:'',msj:'',correo:A.correo};
+        track('aviso',{ref:A.alc});
+        toast(r.aviso?'El aviso se registró, pero hubo un problema al enviarlo':'Aviso enviado'+avisoTxt(r).replace(' · aviso enviado',''));
+        ir('avisos',{},true);
+      });
+    }});
+}
+function avPrueba(){
+  if(!avValidar())return; var A=avEstado();
+  adminPost({accion:'aviso_prueba',titulo:A.tit,mensaje:A.msj}).then(function(r){
+    toast(r.ok?'Prueba enviada a '+(r.correo||'tu correo'):(r.msg||'No se pudo enviar la prueba'));
+  });
+}
+function avHistorial(){
+  adminPost({accion:'avisos_list'}).then(function(r){
+    var box=document.getElementById('avLog');if(!box)return;
+    if(!r.ok){box.innerHTML='<div class="nota">'+esc(r.msg||'No se pudo cargar.')+'</div>';return;}
+    var T={anuncio:'Anuncio',resultado:'Resultado',cambio:'Cambio',recordatorio:'Recordatorio'};
+    box.innerHTML=(r.avisos||[]).length?(r.avisos||[]).map(function(a){
+      var f=a.creado?new Date(a.creado):null, ft=f?f.toLocaleDateString('es-EC',{day:'numeric',month:'short'})+' '+f.toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'}):'';
+      var para=a.tipo==='anuncio'?(a.alcance==='todos'?'Todos los socios':String(a.alcance||'').replace(/^categoría (\w+)/,function(m,c){return 'Categoría '+((CAT[c]||{}).n||c);}).replace(/^equipo (.+)/,function(m,e){return 'Equipo '+titulo((EQ[e]||{}).n||e);})):'Los dos equipos';
+      return '<div class="li"><div class="tx"><b>'+esc(a.titulo||'')+'</b><span>'+esc(a.cuerpo||'')+'</span><span style="font-size:11px;color:var(--muted-2)">'+esc(ft)+' · '+esc(para)+' · '+(a.push||0)+' notif. · '+(a.correos||0)+' correos'+(a.error?' · con error':'')+'</span></div><span class="avtag">'+esc(T[a.tipo]||a.tipo)+'</span></div>';
+    }).join(''):'<div class="nota">Todavía no se ha enviado ningún aviso.</div>';
+  });
+}
+
 /* ---- registrar vistas nuevas ---- */
-VIS.deportes=vDeportes;VIS.depmatch=vDepMatch;VIS.analitica=vAnalitica;VIS.instalar=vInstalar;VIS.contactos=vContactos;
-CONTEXT.push('deportes','depmatch','analitica','instalar','contactos');
-NAVMAP.deportes='mas';NAVMAP.depmatch='mas';NAVMAP.analitica='mas';NAVMAP.instalar='mas';NAVMAP.contactos='mas';
+VIS.deportes=vDeportes;VIS.depmatch=vDepMatch;VIS.analitica=vAnalitica;VIS.instalar=vInstalar;VIS.contactos=vContactos;VIS.avisos=vAvisos;
+CONTEXT.push('deportes','depmatch','analitica','instalar','contactos','avisos');
+NAVMAP.deportes='mas';NAVMAP.depmatch='mas';NAVMAP.analitica='mas';NAVMAP.instalar='mas';NAVMAP.contactos='mas';NAVMAP.avisos='mas';
 
 /* envolver render para mostrar banner de instalación */
 (function(){var _render=render;window.render=function(){_render();try{bannerInstalar();}catch(e){}};})();

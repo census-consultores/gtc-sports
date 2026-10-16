@@ -20,7 +20,13 @@
 //   buscar_socio     {socio, cedula}  (público)            -> {ok, personas[]}  (la cédula vive en jugadores.ced_real, no legible por anon)
 //   registrar_cuenta {access_token, socio, cedula, ...}     (sesión de Supabase Auth obligatoria)
 //   jugador_cedulas  {token, equipo_id}                    -> {ok, cedulas:{id:cedula}}
+//   aviso_enviar     {token, alcance: todos|categoria|equipo, cat?, equipo_id?, titulo, mensaje, correo?}  (Comisión, Deportes, superadmin)
+//   aviso_contar     {token, alcance, ...}                 -> {telefonos, correos} (sin enviar)
+//   aviso_prueba     {token, titulo, mensaje}              -> correo de prueba solo a quien envía
+//   avisos_list      {token}                               -> últimos avisos enviados (push + correo)
+// resultado y partido_edit avisan solos a los dos equipos (push + correo) salvo avisar:false.
 import crypto from 'node:crypto';
+import { avisar, avisoResultado, avisoCambio, destinatarios, enviarCorreos } from '../lib/avisos.js';
 
 const URL = process.env.SUPABASE_URL || 'https://zwuieoenhwychdbzrsif.supabase.co';
 const KEY = process.env.SUPABASE_SECRET_KEY;
@@ -268,6 +274,48 @@ export default async function handler(req, res) {
     }
 
     // ---- CUENTAS / CONTACTOS (lectura, solo superadmin por ser datos personales) ----
+    if (accion === 'aviso_enviar' || accion === 'aviso_contar' || accion === 'aviso_prueba') {
+      if (['superadmin', 'deportes', 'comision'].indexOf(sess.r) < 0) return res.status(403).json({ ok: false, msg: 'Solo la Comisión, Deportes y el superadministrador pueden enviar avisos.' });
+      const tit = String(body.titulo || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 60);
+      const msj = String(body.mensaje || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+      if (accion === 'aviso_prueba') {
+        if (tit.length < 3 || msj.length < 5) return res.status(400).json({ ok: false, msg: 'Escribe un título y un mensaje.' });
+        const c = await enviarCorreos([String(sess.c || '')], '[Prueba] ' + tit, tit, [msj]);
+        return res.status(200).json({ ok: !c.error && c.enviados > 0, correo: sess.c, msg: c.error ? 'No se pudo enviar la prueba.' : undefined });
+      }
+      const alc = String(body.alcance || '');
+      let equipos = null, alcTxt = 'todos';
+      if (alc === 'categoria') {
+        const cat = String(body.cat || '');
+        if (!/^[A-Z0-9]{2,4}$/.test(cat)) return res.status(400).json({ ok: false, msg: 'Elige la categoría.' });
+        const eqs = await sb('equipos?select=id&cat=eq.' + encodeURIComponent(cat) + '&tor=eq.olimpiadas2026');
+        equipos = (eqs || []).map(e => e.id); alcTxt = 'categoría ' + cat;
+        if (!equipos.length) return res.status(400).json({ ok: false, msg: 'Esa categoría no tiene equipos.' });
+      } else if (alc === 'equipo') {
+        const eid = String(body.equipo_id || '');
+        const eqs = eid ? await sb('equipos?select=id&id=eq.' + encodeURIComponent(eid)) : [];
+        if (!eqs || !eqs.length) return res.status(400).json({ ok: false, msg: 'Elige el equipo.' });
+        equipos = [eid]; alcTxt = 'equipo ' + eid;
+      } else if (alc !== 'todos') return res.status(400).json({ ok: false, msg: 'Elige a quién va el aviso.' });
+      if (accion === 'aviso_contar') {
+        const d = await destinatarios(equipos);
+        let tel = d.sessKeys.length;
+        if (d.todos) { const t = await sb('gtc_push_tokens?select=token&limit=10000'); tel = (t || []).length; }
+        return res.status(200).json({ ok: true, telefonos: tel, correos: d.correos.length });
+      }
+      if (tit.length < 3 || msj.length < 5) return res.status(400).json({ ok: false, msg: 'Escribe un título y un mensaje.' });
+      const r = await avisar({
+        clave: 'anu:' + Date.now().toString(36) + ':' + crypto.randomBytes(3).toString('hex'), tipo: 'anuncio', alcance: alcTxt, autor: sess.c,
+        equipos, titulo: tit, cuerpo: msj, asunto: tit, lineas: [msj], correo: body.correo !== false
+      });
+      return res.status(200).json({ ...r, ok: true, aviso: r.error || null });
+    }
+    if (accion === 'avisos_list') {
+      if (!puedeLeer) return res.status(403).json({ ok: false, msg: 'Sin acceso.' });
+      const rows = await sb('gtc_avisos_log?select=tipo,partido_id,alcance,autor,titulo,cuerpo,push,correos,error,creado&order=creado.desc&limit=40');
+      return res.status(200).json({ ok: true, avisos: rows || [] });
+    }
+
     if (accion === 'cuentas_list') {
       if (sess.r !== 'superadmin' && sess.r !== 'directorio') return res.status(403).json({ ok: false, msg: 'Solo el superadministrador y el Directorio pueden ver los contactos.' });
       const rows = await sb('cuentas?select=nombre,socio,equipo_id,cat,correo,whatsapp,consent,plataforma,created_at,last_login&order=last_login.desc&limit=3000');
@@ -306,13 +354,18 @@ export default async function handler(req, res) {
         .flatMap(t => Array.from({ length: parseInt(t.cantidad, 10) }, () => ({ partido_id: pid, jugador_id: t.jugador_id, equipo_id: t.equipo_id || null, tipo: t.tipo === 'roja' ? 'roja' : 'amarilla' })));
       if (goles.length) await sb('goles', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(goles) });
       if (tarjetas.length) await sb('tarjetas', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(tarjetas) });
-      return res.status(200).json({ ok: true, estado });
+      // Aviso automático a los dos equipos (una sola vez por marcador; si se corrige, sale el marcador nuevo)
+      let aviso = null;
+      if (estado === 'fin' && body.avisar !== false) {
+        try { aviso = await avisoResultado(pid, sess.c); } catch (e) { aviso = { ok: false, error: 'No se pudo enviar el aviso.' }; }
+      }
+      return res.status(200).json({ ok: true, estado, aviso });
     }
 
     if (accion === 'partido_edit') {
       const pid = String(body.partido_id || '');
       if (!pid) return res.status(400).json({ ok: false, msg: 'Falta el partido.' });
-      const cur = await sb('partidos?select=id,cat,local_id,visita_id,tor&id=eq.' + encodeURIComponent(pid));
+      const cur = await sb('partidos?select=id,cat,local_id,visita_id,tor,fecha,hora,sede&id=eq.' + encodeURIComponent(pid));
       if (!cur || !cur.length) return res.status(404).json({ ok: false, msg: 'El partido no existe.' });
       const p0 = cur[0];
       const patch = {};
@@ -338,7 +391,13 @@ export default async function handler(req, res) {
         await sb('goles?partido_id=eq.' + encodeURIComponent(pid) + '&equipo_id=' + fuera, { method: 'DELETE', prefer: 'return=minimal' });
         await sb('tarjetas?partido_id=eq.' + encodeURIComponent(pid) + '&equipo_id=' + fuera, { method: 'DELETE', prefer: 'return=minimal' });
       }
-      return res.status(200).json({ ok: true, cambianEquipos });
+      // Cambio de fecha, hora o cancha: aviso inmediato a los dos equipos
+      const cambiaHorario = ['fecha', 'hora', 'sede'].some(k => patch[k] != null && String(patch[k]) !== String(p0[k] == null ? '' : p0[k]));
+      let aviso = null;
+      if (cambiaHorario && body.avisar !== false) {
+        try { aviso = await avisoCambio(pid, sess.c); } catch (e) { aviso = { ok: false, error: 'No se pudo enviar el aviso.' }; }
+      }
+      return res.status(200).json({ ok: true, cambianEquipos, aviso });
     }
 
     if (accion === 'partido_del') {
