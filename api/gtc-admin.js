@@ -229,24 +229,49 @@ export default async function handler(req, res) {
       if (!puedeLeer) return res.status(403).json({ ok: false, msg: 'Sin permiso.' });
       const dias = Math.min(90, Math.max(1, parseInt(body.dias || 30, 10)));
       const desde = new Date(Date.now() - dias * 86400000).toISOString();
-      const ev = await sb('eventos?select=tipo,sesion,rol,socio,nombre,vista,plataforma,standalone,created_at&created_at=gte.' + encodeURIComponent(desde) + '&order=created_at.desc&limit=5000');
-      const sesiones = {}, vistas = {}, plat = {}, tipos = {}, instal = {}, porDia = {}, socios = {};
-      (ev || []).forEach(e => {
-        tipos[e.tipo] = (tipos[e.tipo] || 0) + 1;
-        if (e.sesion) sesiones[e.sesion] = 1;
-        if (e.tipo === 'vista' && e.vista) vistas[e.vista] = (vistas[e.vista] || 0) + 1;
-        if (e.plataforma) plat[e.plataforma] = (plat[e.plataforma] || 0) + 1;
-        if (e.tipo === 'instalar' || e.tipo === 'instalado') { instal[e.plataforma || 'web'] = (instal[e.plataforma || 'web'] || 0) + 1; }
-        const d = (e.created_at || '').slice(0, 10); if (d) porDia[d] = (porDia[d] || 0) + 1;
-        if ((e.tipo === 'login' || e.tipo === 'login_socio') && e.nombre) socios[e.nombre] = (socios[e.nombre] || 0) + 1;
+      // Supabase entrega como máximo 1000 filas por consulta: se pide por páginas hasta traer todo el periodo.
+      const ev = [];
+      for (let from = 0; from < 60000; from += 1000) {
+        const r = await fetch(URL + '/rest/v1/eventos?select=tipo,sesion,rol,socio,nombre,vista,plataforma,ua,created_at&created_at=gte.' + encodeURIComponent(desde) + '&order=created_at.desc',
+          { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Range-Unit': 'items', Range: from + '-' + (from + 999) } });
+        if (!r.ok) break;
+        const rows = await r.json();
+        ev.push(...rows);
+        if (rows.length < 1000) break;
+      }
+      // Fuera de la cuenta: pruebas automáticas, robots y la cuenta demo del revisor de Apple (socio 9999).
+      const PRUEBA = /headless|playwright|bot\b|bot\/|crawl|spider|vercel|lighthouse|preview/i;
+      const demo = new Set(ev.filter(e => /^0*9999$/.test(String(e.socio || ''))).map(e => e.sesion));
+      const limpio = ev.filter(e => e.sesion && !PRUEBA.test(e.ua || '') && !demo.has(e.sesion));
+      // Equipo GTC: dispositivos que entraron con un rol de administración (no se cuentan como socios).
+      const equipo = new Set(limpio.filter(e => ['superadmin', 'deportes', 'comision', 'directorio'].indexOf(e.rol) >= 0).map(e => e.sesion));
+      const soc = limpio.filter(e => !equipo.has(e.sesion));
+      const disp = { android: new Set(), ios: new Set(), web: new Set() }, vistas = {}, porDia = {}, socios = new Set(), quien = {};
+      let pv = 0, logins = 0;
+      soc.forEach(e => {
+        const pl = e.plataforma === 'android' || e.plataforma === 'ios' ? e.plataforma : 'web';
+        disp[pl].add(e.sesion);
+        if (e.tipo === 'vista') { pv++; if (e.vista) vistas[e.vista] = (vistas[e.vista] || 0) + 1; }
+        if (e.tipo === 'login_socio') { logins++; if (e.nombre) quien[e.nombre] = (quien[e.nombre] || 0) + 1; }
+        if (e.rol === 'socio' && e.socio) socios.add(String(e.socio).replace(/^0+/, ''));
+        const d = new Date(new Date(e.created_at).getTime() - 5 * 3600000).toISOString().slice(0, 10);
+        (porDia[d] = porDia[d] || new Set()).add(e.sesion);
       });
-      const top = o => Object.keys(o).map(k => [k, o[k]]).sort((a, b) => b[1] - a[1]);
+      const eqVistas = limpio.filter(e => equipo.has(e.sesion) && e.tipo === 'vista').length;
+      const top = o => Object.keys(o).map(k => [k, o[k]]).sort((x, y) => y[1] - x[1]);
+      let cuentas = null, avisos = null;
+      try { const c = await fetch(URL + '/rest/v1/cuentas?select=id', { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, Prefer: 'count=exact', Range: '0-0' } }); cuentas = parseInt(String(c.headers.get('content-range') || '').split('/')[1], 10); } catch (e) { }
+      try { const t = await fetch(URL + '/rest/v1/gtc_push_tokens?select=token', { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, Prefer: 'count=exact', Range: '0-0' } }); avisos = parseInt(String(t.headers.get('content-range') || '').split('/')[1], 10); } catch (e) { }
+      const primero = ev.length ? ev[ev.length - 1].created_at : null;
       return res.status(200).json({
-        ok: true, dias, total: (ev || []).length, sesiones: Object.keys(sesiones).length,
-        tipos, vistas: top(vistas).slice(0, 20), plataformas: plat, instalaciones: instal,
-        porDia: Object.keys(porDia).sort().map(d => [d, porDia[d]]),
-        topSocios: top(socios).slice(0, 20),
-        recientes: (ev || []).slice(0, 40)
+        ok: true, v: 2, dias, desde: primero,
+        telefonos: { android: disp.android.size, ios: disp.ios.size }, web: disp.web.size,
+        socios: socios.size, logins, paginas: pv,
+        cuentas: isNaN(cuentas) ? null : cuentas, avisos: isNaN(avisos) ? null : avisos,
+        vistas: top(vistas).slice(0, 12), topSocios: top(quien).slice(0, 20),
+        porDia: Object.keys(porDia).sort().map(d => [d, porDia[d].size]),
+        equipo: { dispositivos: equipo.size, paginas: eqVistas },
+        excluidos: ev.length - limpio.length, total: ev.length
       });
     }
 
