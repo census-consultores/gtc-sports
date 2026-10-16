@@ -398,6 +398,42 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
 .pmf{font-size:11.5px;color:var(--muted);margin-top:8px}
 .plprev{margin-top:4px;padding:11px 13px;border-radius:12px;background:var(--line-2);font-size:13px;line-height:1.5}
 .plprev .pe{color:#C0352B;font-weight:700}
+.wsT,.wsApp{display:none}
+/* ===== Panel de Deportes en la web: espacio de trabajo de escritorio ===== */
+@media (min-width:900px){
+  html.ws body{max-width:none}
+  html.ws #nav{display:none}
+  html.ws #instbn{display:none!important}
+  html.ws main{padding-bottom:28px}
+  html.ws #top{padding:0 28px;gap:14px}
+  html.ws #top .wsT{display:block;font-size:15px;font-weight:700;color:rgba(255,255,255,.72);padding-left:16px;margin-left:2px;border-left:1px solid rgba(255,255,255,.18)}
+  html.ws #top .wsApp{display:inline-flex;align-items:center;height:36px;padding:0 15px;border-radius:10px;border:1px solid rgba(255,255,255,.22);color:#fff;font-weight:700;font-size:13px}
+  html.ws #top .wsApp:hover{background:rgba(255,255,255,.08)}
+  html.ws #app>.wrap{max-width:1320px;margin:0 auto;padding:0 32px}
+  html.ws #app>.wrap:first-child{padding-top:16px}
+  html.ws h1.page{font-size:32px}
+  html.ws .seg{display:inline-flex;background:none;padding:0;gap:4px;border-bottom:1px solid var(--line);border-radius:0;width:100%}
+  html.ws .seg button{flex:none;padding:12px 18px;border-radius:0;font-size:14px;background:none;color:var(--muted);box-shadow:none;border-bottom:3px solid transparent;margin-bottom:-1px}
+  html.ws .seg button.on{background:none;color:var(--ink);border-bottom-color:var(--gold,#C9A227)}
+  html.ws .seg button:hover{color:var(--ink)}
+  /* Resultados: filtros fijos a la izquierda y partidos en dos columnas */
+  html.ws .dr{display:grid;grid-template-columns:280px minmax(0,1fr);gap:32px;align-items:start}
+  html.ws .dr-f{position:sticky;top:12px}
+  html.ws .dr-f .chips{grid-template-columns:repeat(2,minmax(0,1fr))}
+  html.ws .dr-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  html.ws .dr-rows .li{background:var(--card);border:1px solid var(--line);border-radius:12px}
+  html.ws .dr-rows .li:hover{border-color:var(--royal)}
+  /* Partido: planilla de la serie lado a lado y barra fija para guardar */
+  html.ws #plM{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+  html.ws #plM .pm{margin-bottom:0}
+  html.ws .eqs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+  html.ws .savebar{position:sticky;bottom:0;z-index:5;margin-top:18px;padding:12px 0 14px;background:linear-gradient(to top,var(--bg) 78%,transparent);display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:end}
+  html.ws .savebar .plprev{margin:0}
+  html.ws .savebar #dmErr{grid-column:1/-1}
+  html.ws .savebar #dmErr:empty{display:none}
+  html.ws .savebar #dmSave{margin-top:0!important;grid-column:2;grid-row:1}
+  html.ws .savebar:not(:has(.plprev)) {grid-template-columns:1fr 300px}
+}
 #ovPel .pl li{margin:0 0 5px}
 .aviso{background:rgba(214,69,69,.10);color:var(--rojo);border-radius:11px;padding:10px 13px;font-size:12px;font-weight:600;margin-top:12px}
 .demo{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);
@@ -779,6 +815,18 @@ function atras(){var h=S.hist.pop();if(h){S.vista=h.v;S.params=h.p;S.torneo=h.t;
 var NAV=[['inicio','Inicio'],['torneos','Torneos'],['calendario','Calendario'],['novedades','Novedades'],['mas','Más']];
 var NAVMAP={inicio:'inicio',torneos:'torneos',torneo:'torneos',equipo:'torneos',disciplina:'torneos',partido:'torneos',
   calendario:'calendario',novedades:'novedades',mas:'mas',reglamento:'mas',acerca:'mas'};
+/* Panel de Deportes en la web: espacio de trabajo a pantalla completa (la app nativa no cambia) */
+function wsModo(){
+  var on=!esNativo()&&(S.vista==='deportes'||S.vista==='depmatch');
+  document.documentElement.classList.toggle('ws',on);
+  var top=document.getElementById('top');
+  if(top&&!document.getElementById('wsT')){
+    var wm=top.querySelector('.wmT');
+    if(wm)wm.insertAdjacentHTML('afterend','<span class="wsT" id="wsT">Panel de Deportes</span>');
+    var th=document.getElementById('btTheme');
+    if(th)th.insertAdjacentHTML('beforebegin','<button class="wsApp" type="button" onclick="goGlobal(\'inicio\')">Ver la app</button>');
+  }
+}
 function pintaNav(){
   var n=document.getElementById('nav');
   if(S.vista==='splash'||S.vista==='contacto'||(S.vista==='acceso'&&esComputadora())){n.hidden=true;return;}
@@ -2354,6 +2402,7 @@ function render(){
   }
   app.innerHTML=__html;
   app.scrollTop=0;
+  wsModo();
   /* Animación de entrada solo al cambiar de pantalla (no al cambiar de pestaña o filtro dentro de la misma),
      y solo sobre el contenido: las barras fijas (torneo, pestañas) no parpadean. */
   var __vk=S.vista+'|'+(S.vista==='torneo'?(S.torneo||''):(S.params&&S.params.id)||'');
@@ -2961,7 +3010,7 @@ function depResultados(){
   var cats={};P.forEach(function(p){if(p.cat)cats[p.cat]=1;});
   var fil=P.filter(function(p){return (!fd||p.disc===fd)&&(!fc||p.cat===fc)&&(!fs||(fs==='pend'?p.gl==null:p.gl!=null));});
   fil.sort(function(a,b){return (a.f+a.h).localeCompare(b.f+b.h);});
-  var h='<div class="chips" style="margin-bottom:8px"><button class="chip'+(!fs?' on':'')+'" onclick="setF(\'fstate\',\'\')">Todos</button>'+
+  var h='<div class="dr"><div class="dr-f"><div class="chips" style="margin-bottom:8px"><button class="chip'+(!fs?' on':'')+'" onclick="setF(\'fstate\',\'\')">Todos</button>'+
     '<button class="chip'+(fs==='pend'?' on':'')+'" onclick="setF(\'fstate\',\'pend\')">Por registrar</button>'+
     '<button class="chip'+(fs==='hecho'?' on':'')+'" onclick="setF(\'fstate\',\'hecho\')">Con marcador</button></div>';
   h+='<div class="chips" style="margin-bottom:8px"><button class="chip wide'+(!fd?' on':'')+'" onclick="setF(\'fd\',\'\')">Todo deporte</button>'+
@@ -2970,19 +3019,21 @@ function depResultados(){
     h+='<div class="chips" style="margin-bottom:10px"><button class="chip wide'+(!fc?' on':'')+'" onclick="setF(\'fc\',\'\')">Toda categoría</button>'+
       DATA.categorias.filter(function(c){return cats[c.id];}).map(function(c){return '<button class="chip'+(fc===c.id?' on':'')+'" onclick="setF(\'fc\',\''+c.id+'\')">'+esc(c.n)+'</button>';}).join('')+'</div>';
   }
-  h+='<div class="nota" style="margin:2px 0 12px">'+fil.length+' partidos. Toca uno para registrar o corregir el marcador.</div>';
+  h+='<div class="nota" style="margin:2px 0 12px">'+fil.length+' partidos. Toca uno para registrar o corregir el marcador.</div></div><div class="dr-l">';
   var grp={},ord=[];fil.slice(0,120).forEach(function(p){if(!grp[p.f]){grp[p.f]=[];ord.push(p.f);}grp[p.f].push(p);});
   ord.forEach(function(f){
-    h+='<div style="margin:14px 0 8px;font-weight:800;font-size:13px;color:var(--ink)">'+esc(fLarga(f))+'</div>';
+    h+='<section class="dr-g"><div class="dr-d" style="margin:14px 0 8px;font-weight:800;font-size:13px;color:var(--ink)">'+esc(fLarga(f))+'</div><div class="dr-rows">';
     h+=grp[f].map(function(p){
       var done=p.gl!=null;
       var catn=p.cat&&CAT[p.cat]?CAT[p.cat].n:(p.label||'');
       return '<button class="li" onclick="ir(\'depmatch\',{id:\''+p.id+'\'})"><span class="ic" style="background:'+discColor(p.disc)+'">'+svd(p.disc)+'</span>'+
         '<div class="tx"><b>'+esc(titulo(p.home.n))+' vs '+esc(titulo(p.away.n))+'</b><span>'+esc(p.h||'')+' · '+esc(catn)+' · '+esc(p.sede||'')+'</span></div>'+
         (done?'<span class="bdg fin" style="margin-left:auto">'+p.gl+'-'+p.gv+'</span>':'<span class="bdg next" style="margin-left:auto">Registrar</span>')+'</button>';
-    }).join('');
+    }).join('')+'</div></section>';
   });
   if(fil.length>120)h+='<div class="nota" style="margin-top:10px">Mostrando 120. Usa los filtros para acotar.</div>';
+  if(!fil.length)h+='<div class="nota" style="margin-top:10px">No hay partidos con esos filtros. Cambia el deporte, la categoría o el estado.</div>';
+  h+='</div></div>';
   return h;
 }
 function vDepMatch(){
@@ -3025,12 +3076,12 @@ function vDepMatch(){
   }
   if(!conPlan||p.disc==='beachvolley'){ /* beach volley tiene tarjetas (reglamento, literal g) */
     if(conPlan)h+='<h2 class="sec" style="margin-top:16px">Tarjetas</h2>';
-    h+=equipoBloque(eqL,'L');
-    h+=equipoBloque(eqV,'V');
+    h+='<div class="eqs"><div>'+equipoBloque(eqL,'L')+'</div><div>'+equipoBloque(eqV,'V')+'</div></div>';
   }
-  h+='<div id="dmErr"></div>';
+  h+='<div class="savebar">'+(conPlan?'<div id="plPrev" class="plprev"></div>':'')+'<div id="dmErr"></div>';
   h+=conPlan?'<button class="btn" id="dmSave" style="margin-top:14px" onclick="guardarPlanilla()">Guardar resultado</button>'
     :'<button class="btn" id="dmSave" style="margin-top:14px" onclick="guardarResultado()">Guardar marcador y estadísticas</button>';
+  h+='</div>';
   h+='<details class="acc" style="margin-top:14px;background:var(--card);border-radius:14px;border:1px solid var(--line)"><summary style="padding:12px 15px">Editar datos del partido (fecha, hora, sede)</summary><div class="bd" style="padding:0 15px 14px">'+
     '<div class="field"><label>Fecha</label><input id="peF" type="date" value="'+esc(praw.f||'')+'"></div>'+
     '<div class="field"><label>Hora</label><input id="peH" value="'+esc(praw.h||'')+'" placeholder="16:30"></div>'+
@@ -3085,7 +3136,6 @@ function planEditorHTML(p,praw){
   }
   if(praw.gl!=null&&!praw.det)h+='<div class="nota" style="margin-top:10px">Este resultado (<b>'+praw.gl+' : '+praw.gv+'</b>) se registró antes de la planilla por sets. Completa los sets'+(pl.pts?' para que sumen en la tabla':'')+'; mientras tanto se mantiene como está.</div>';
   h+='</div><div id="plM">'+pl.ks.map(bloque).join('')+'</div>';
-  h+='<div id="plPrev" class="plprev"></div>';
   return h;
 }
 function planLeer(){
