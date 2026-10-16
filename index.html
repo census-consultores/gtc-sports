@@ -39,16 +39,17 @@ html.natfonts{--fa:'ArchivoB',system-ui,-apple-system,sans-serif;--fs:'Instrumen
   --sat:env(safe-area-inset-top); --sab:env(safe-area-inset-bottom);
   /* separación de la barra inferior flotante respecto al borde: casi pegada, justo sobre el indicador de inicio del iPhone */
   --navb:max(8px, calc(env(safe-area-inset-bottom) - 20px));
+  --dv1:#4554B0; --dv2:#B08A14;
 }
 :root[data-theme="dark"], :root:not([data-theme="light"]) .dkauto{}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
   --bg:#080B1C; --card:#12162F; --card-2:#0E1226; --line:#252B48; --line-2:#1B2039;
-  --ink:#ECEEF8; --muted:#A2A7C2; --muted-2:#6E7498; --royal:#8B97E8; --gold:#E0BC4F;
+  --ink:#ECEEF8; --muted:#A2A7C2; --muted-2:#6E7498; --royal:#8B97E8; --gold:#E0BC4F; --dv1:#7280D8; --dv2:#AC8A1E;
   --sh:0 2px 10px rgba(0,0,0,.4); --sh-lg:0 16px 40px rgba(0,0,0,.5); --sh-hero:0 18px 48px rgba(0,0,0,.55);
 }}
 :root[data-theme="dark"]{
   --bg:#080B1C; --card:#12162F; --card-2:#0E1226; --line:#252B48; --line-2:#1B2039;
-  --ink:#ECEEF8; --muted:#A2A7C2; --muted-2:#6E7498; --royal:#8B97E8; --gold:#E0BC4F;
+  --ink:#ECEEF8; --muted:#A2A7C2; --muted-2:#6E7498; --royal:#8B97E8; --gold:#E0BC4F; --dv1:#7280D8; --dv2:#AC8A1E;
   --sh:0 2px 10px rgba(0,0,0,.4); --sh-lg:0 16px 40px rgba(0,0,0,.5); --sh-hero:0 18px 48px rgba(0,0,0,.55);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -443,6 +444,51 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
   html.ws .savebar:not(:has(.plprev)) {grid-template-columns:1fr 300px}
 }
 #ovPel .pl li{margin:0 0 5px}
+.an-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh-sm);padding:16px}
+.an-hero .big{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--ink)}
+.an-hero .lbl{font-size:14px;font-weight:700;color:var(--ink);margin-top:4px}
+.an-hero .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.an-split{display:flex;gap:2px;height:12px;margin:16px 0 10px}
+.an-split i{display:block;height:100%;min-width:4px}
+.an-split i:first-child{border-radius:6px 0 0 6px}.an-split i:last-child{border-radius:0 6px 6px 0}.an-split i:only-child{border-radius:6px}
+.an-leg{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
+.an-leg b{color:var(--ink);font-weight:800;margin-right:4px}
+.an-sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.an-foot{font-size:12px;line-height:1.5;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid var(--line-2);text-align:justify}
+.an-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.an-tile{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:13px 12px}
+.an-tile b{display:block;font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.05}
+.an-tile span{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-top:4px;line-height:1.3}
+.an-cols{position:relative;display:flex;align-items:flex-end;gap:2px;height:132px;padding-top:6px;border-bottom:1px solid var(--line)}
+.an-cols .c{flex:1 1 0;min-width:2px;height:100%;display:flex;align-items:flex-end;position:relative;cursor:default}
+.an-cols .c i{display:block;width:100%;background:var(--dv1);border-radius:4px 4px 0 0}
+.an-cols .c.z i{background:var(--line);height:2px!important;border-radius:1px}
+.an-cols .c:hover i,.an-cols .c:focus i{filter:brightness(1.15)}
+.an-cols .c:hover:after,.an-cols .c:focus:after{content:attr(data-tip);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--ink);color:var(--card);font-size:11.5px;font-weight:600;padding:5px 8px;border-radius:8px;z-index:3;pointer-events:none}
+.an-cols .c:first-child:hover:after,.an-cols .c:first-child:focus:after{left:0;transform:none}
+.an-cols .c:last-child:hover:after,.an-cols .c:last-child:focus:after{left:auto;right:0;transform:none}
+.an-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted-2);margin-top:6px}
+.an-sum{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.an-sum b{color:var(--ink)}
+.an-rank{display:grid;grid-template-columns:minmax(0,132px) minmax(0,1fr) 44px;align-items:center;gap:6px 10px;font-size:13px}
+.an-rank .n{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.an-rank .t{height:8px;border-radius:4px;background:var(--line-2);overflow:hidden}
+.an-rank .t i{display:block;height:100%;background:var(--dv1);border-radius:4px}
+.an-rank .v{text-align:right;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.an-people{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.an-p{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line-2);border-radius:11px;font-size:12.5px;color:var(--ink);min-width:0}
+.an-p .av{flex:0 0 26px;width:26px;height:26px;border-radius:50%;background:var(--line-2);color:var(--muted);font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;letter-spacing:.02em}
+.an-p em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.an-p small{font-weight:700;color:var(--muted)}
+@media (min-width:900px){
+  html.ws .an-top{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:stretch}
+  html.ws .an-top .an-tiles{grid-template-columns:1fr;gap:9px}
+  html.ws .an-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+  html.ws .an-people{grid-template-columns:repeat(2,minmax(0,1fr))}
+  html.ws .an-cols{height:170px}
+}
+@media (max-width:620px){.an-people{grid-template-columns:1fr}}
+@media (max-width:380px){.an-rank{grid-template-columns:minmax(0,104px) minmax(0,1fr) 40px}}
 .avchk{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.4;color:var(--muted);margin-top:12px;cursor:pointer}
 .avchk input{width:17px;height:17px;flex:0 0 17px;margin:1px 0 0;accent-color:var(--navy)}
 .avcnt{font-size:12.5px;color:var(--muted);margin:10px 0 2px}
@@ -3508,33 +3554,49 @@ function cargarAnalitica(dias){
   adminPost({accion:'analitica',dias:dias}).then(function(r){
     var c=document.getElementById('anBody');if(!c)return;
     if(!r.ok){c.innerHTML='<div class="aviso">'+esc(r.msg||'No se pudo cargar.')+'</div>';return;}
-    function k(n,t,sub){return '<div class="kpi"><b>'+(n==null?'—':n)+'</b><span>'+t+'</span>'+(sub?'<small style="display:block;font-size:10.5px;color:var(--muted-2);margin-top:3px;line-height:1.3">'+sub+'</small>':'')+'</div>';}
-    var ap=r.avisosPl||{};
-    var h=secHead('Teléfonos con la app');
-    h+='<div class="kpis" style="--n:3;margin-bottom:6px">'+
-      k(r.avisos,'Total','con avisos activados')+
-      k(ap.ios||0,'iPhone','App Store')+
-      k(ap.android||0,'Android','Google Play')+'</div>';
-    h+='<div class="nota" style="margin:8px 0 4px">Se cuentan los teléfonos que tienen la app instalada desde su tienda y activaron las notificaciones: solo la app instalada puede activarlas. Quien instaló la app pero no aceptó los avisos no aparece aquí. Es una cifra al día de hoy.</div>';
-    h+=secHead('Socios en estos '+r.dias+' días');
-    h+='<div class="kpis" style="--n:3;margin-bottom:6px">'+
-      k(r.socios,'Socios que entraron','con su código de socio')+
-      k(r.paginas,'Páginas vistas','en la app y en la web')+
-      k(r.cuentas,'Cuentas de socios','registradas al día de hoy')+'</div>';
-    if(r.vistas&&r.vistas.length){h+=secHead('Lo que más miran los socios');
-      h+='<div class="card"><div style="padding:6px 15px">'+r.vistas.map(function(v){return '<div class="player"><span class="nm" style="flex:1">'+esc(nombreVista(v[0]))+'</span><span class="rr">'+v[1]+'</span></div>';}).join('')+'</div></div>';}
-    if(r.topSocios&&r.topSocios.length){h+=secHead('Socios que iniciaron sesión');
-      h+='<div class="card"><div style="padding:6px 15px">'+r.topSocios.map(function(v){return '<div class="player"><span class="av">'+esc(ini(v[0]))+'</span><span class="nm" style="flex:1">'+esc(titulo(v[0]))+'</span><span class="rr">'+v[1]+'</span></div>';}).join('')+'</div></div>';}
-    if(r.porDia&&r.porDia.length){h+=secHead('Teléfonos y navegadores por día');
-      var max=Math.max.apply(null,r.porDia.map(function(d){return d[1];}));
-      h+='<div class="card"><div style="padding:12px 15px">'+r.porDia.slice(-14).map(function(d){var w=Math.round(d[1]/max*100);
-        return '<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><span style="width:52px;font-size:11px;color:var(--muted-2)">'+esc(d[0].slice(8)+'/'+d[0].slice(5,7))+'</span><span style="flex:1;height:10px;background:var(--line);border-radius:6px;overflow:hidden"><i style="display:block;height:100%;width:'+w+'%;background:var(--gold)"></i></span><span style="width:28px;text-align:right;font-size:12px;font-weight:700">'+d[1]+'</span></div>';}).join('')+'</div></div>';}
+    function n(x){return x==null?'—':Number(x).toLocaleString('es-EC');}
+    var ap=r.avisosPl||{},ios=ap.ios||0,and=ap.android||0,tot=ios+and;
+    /* 1 · Teléfonos con la app: la cifra principal y cómo se reparte por tienda */
+    var h='<div class="an-top"><div class="an-card an-hero"><div class="big">'+n(tot)+'</div><div class="lbl">teléfonos con la app instalada</div><div class="sub">con las notificaciones activadas, al día de hoy</div>';
+    if(tot){h+='<div class="an-split" role="img" aria-label="iPhone '+ios+', Android '+and+'">'+(ios?'<i style="flex:'+ios+';background:var(--dv1)"></i>':'')+(and?'<i style="flex:'+and+';background:var(--dv2)"></i>':'')+'</div>'+
+      '<div class="an-leg"><span><span class="an-sw" style="background:var(--dv1)"></span><b>'+n(ios)+'</b>iPhone · App Store</span><span><span class="an-sw" style="background:var(--dv2)"></span><b>'+n(and)+'</b>Android · Google Play</span></div>';}
+    h+='<div class="an-foot">Solo la app instalada puede activar las notificaciones, así que esta es la medida confiable de la app por tienda. Quien la instaló y no aceptó los avisos no aparece aquí.</div></div>';
+    /* 2 · El periodo elegido */
+    h+='<div class="an-tiles">'+
+      '<div class="an-tile"><b>'+n(r.socios)+'</b><span>socios entraron en '+r.dias+' días</span></div>'+
+      '<div class="an-tile"><b>'+n(r.paginas)+'</b><span>páginas vistas en '+r.dias+' días</span></div>'+
+      '<div class="an-tile"><b>'+n(r.cuentas)+'</b><span>cuentas registradas en total</span></div></div></div>';
+    /* 3 · Actividad diaria: todos los días del periodo, incluidos los días sin uso */
+    var pd={};(r.porDia||[]).forEach(function(d){pd[d[0]]=d[1];});
+    var hoy=new Date(Date.now()-5*3600000), d1=new Date(hoy.getTime()-(r.dias-1)*864e5);
+    if(r.porDia&&r.porDia[0]){var d0=new Date(r.porDia[0][0]+'T12:00:00Z'); if(d0>d1)d1=d0;}
+    var serie=[],t=new Date(Date.UTC(d1.getUTCFullYear(),d1.getUTCMonth(),d1.getUTCDate()));
+    while(t<=hoy){var k=t.toISOString().slice(0,10);serie.push([k,pd[k]||0]);t=new Date(t.getTime()+864e5);}
+    if(serie.length){
+      var mx=Math.max.apply(null,serie.map(function(d){return d[1];}))||1, sum=serie.reduce(function(a,d){return a+d[1];},0);
+      var top=serie.reduce(function(a,d){return d[1]>a[1]?d:a;},serie[0]);
+      function fc(k){return +k.slice(8)+'/'+k.slice(5,7);}
+      h+=secHead('Uso por día')+'<div class="an-card">'+
+        '<div class="an-sum"><span>Promedio <b>'+(sum/serie.length).toFixed(1).replace('.',',')+'</b> teléfonos y navegadores por día</span><span>Día con más uso: <b>'+fc(top[0])+'</b> ('+top[1]+')</span></div>'+
+        '<div class="an-cols">'+serie.map(function(d){return '<span class="c'+(d[1]?'':' z')+'" tabindex="0" data-tip="'+fc(d[0])+': '+d[1]+'" aria-label="'+fc(d[0])+': '+d[1]+'"><i style="height:'+(d[1]?Math.max(4,Math.round(d[1]/mx*100)):0)+'%"></i></span>';}).join('')+'</div>'+
+        '<div class="an-axis"><span>'+fc(serie[0][0])+'</span>'+(serie.length>2?'<span>'+fc(serie[Math.floor(serie.length/2)][0])+'</span>':'')+'<span>'+fc(serie[serie.length-1][0])+'</span></div></div>';
+    }
+    /* 4 · Qué miran y quiénes entraron */
+    h+='<div class="an-two">';
+    if(r.vistas&&r.vistas.length){var vm=r.vistas[0][1]||1;
+      h+='<div>'+secHead('Lo que más miran los socios')+'<div class="an-card"><div class="an-rank">'+r.vistas.slice(0,10).map(function(v){
+        return '<span class="n">'+esc(nombreVista(v[0]))+'</span><span class="t"><i style="width:'+Math.max(2,Math.round(v[1]/vm*100))+'%"></i></span><span class="v">'+n(v[1])+'</span>';}).join('')+'</div></div></div>';}
+    if(r.topSocios&&r.topSocios.length){var ts=r.topSocios, mas=ts.length>10&&!window.__anTodos;
+      h+='<div>'+secHead('Socios que iniciaron sesión ('+ts.length+')')+'<div class="an-card"><div class="an-people">'+(mas?ts.slice(0,10):ts).map(function(v){
+        return '<span class="an-p"><span class="av">'+esc(ini(v[0]))+'</span><em>'+esc(titulo(v[0]))+'</em>'+(v[1]>1?'<small>'+v[1]+' veces</small>':'')+'</span>';}).join('')+'</div>'+
+        (mas?'<button class="btn line" style="margin-top:10px" onclick="window.__anTodos=1;cargarAnalitica('+r.dias+')">Ver los '+ts.length+'</button>':'')+'</div></div>';}
+    h+='</div>';
     var eq=r.equipo||{};
-    h+='<div class="nota" style="margin-top:12px">No se cuentan como socios: el equipo GTC (Directiva, Comisión, Deportes y superadministrador: '+(eq.dispositivos||0)+' dispositivos, '+(eq.paginas||0)+' páginas), la cuenta demo del revisor de Apple, las pruebas automáticas ni los robots ('+(r.excluidos||0)+' registros).'+(r.desde&&new Date(r.desde).getTime()>Date.now()-(r.dias-1)*864e5?' La medición empezó el '+esc(fLarga(String(r.desde).slice(0,10)).toLowerCase())+', así que este periodo cubre menos días.':'')+'</div>';
+    h+='<div class="nota" style="margin-top:14px">No se cuentan como socios el equipo GTC (Directiva, Comisión, Deportes y superadministrador: '+(eq.dispositivos||0)+' dispositivos), la cuenta demo del revisor de Apple, las pruebas automáticas ni los robots.'+(r.desde&&new Date(r.desde).getTime()>Date.now()-(r.dias-1)*864e5?' La medición empezó el '+esc(fLarga(String(r.desde).slice(0,10)).toLowerCase())+', así que este periodo cubre menos días.':'')+'</div>';
     c.innerHTML=h;
   });
 }
-function nombreVista(v){var m={inicio:'Inicio',torneos:'Torneos',torneo:'Detalle de torneo',calendario:'Calendario',novedades:'Novedades',mas:'Más',partido:'Detalle de partido',equipo:'Equipo',disciplina:'Disciplina',acceso:'Acceso',deportes:'Panel Deportes',depmatch:'Registrar resultado',avisos:'Enviar aviso',analitica:'Analítica',instalar:'Instalar app',notificaciones:'Notificaciones'};return m[v]||v;}
+function nombreVista(v){var m={inicio:'Inicio',torneos:'Torneos',torneo:'Detalle de torneo',calendario:'Calendario',novedades:'Novedades',mas:'Más',partido:'Detalle de partido',equipo:'Equipo',disciplina:'Disciplina',acceso:'Acceso',deportes:'Panel Deportes',depmatch:'Registrar resultado',avisos:'Enviar aviso',analitica:'Analítica',instalar:'Instalar app',notificaciones:'Notificaciones',hist2025:'Olimpiadas 2025',terminos:'Términos y datos',reglamento:'Reglamento',acerca:'Acerca de la app',contacto:'Contacto',contactos:'Contactos de socios',admin:'Usuarios y roles',hist:'Historial'};return m[v]||v;}
 
 /* ==================================================================
    PWA · instalación
