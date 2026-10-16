@@ -1173,7 +1173,7 @@ function setValido(a,b,r){
   var w=Math.max(a,b),l=Math.min(a,b);
   if(r.t==='x')return '';
   if(r.t==='g'){
-    if(!r.tb) return (w>=r.n)?'':'el ganador llega al menos a '+r.n+' games';
+    if(!r.tb) return (w===r.n)?'':'el set termina cuando un jugador completa '+r.n+' games (por ejemplo '+r.n+'-'+(r.n-2)+' o '+r.n+'-'+(r.n-1)+')';
     if(w===r.n&&l<=r.n-2)return '';
     if(w===r.n+1&&l>=r.n-1)return '';
     return 'un set a '+r.n+' games termina '+r.n+'-'+(r.n-2)+' o menos, '+(r.n+1)+'-'+(r.n-1)+' o '+(r.n+1)+'-'+r.n+' (tie-break)';
@@ -1191,6 +1191,8 @@ function evalMatch(disc,cat,k,m){
   if(m.wo==='l'||m.wo==='v'){var s=planWO(disc,cat,k)||[];
     var win=m.wo==='l'?'v':'l'; s=s.map(function(x){return win==='l'?[x[0],x[1]]:[x[1],x[0]];});
     return {ok:true,w:win,wo:m.wo,s:s,sl:win==='l'?s.length:0,sv:win==='v'?s.length:0,k:k,lab:lab};}
+  var media=(m.s||[]).filter(function(x){return x&&((x[0]==null||x[0]==='')!==(x[1]==null||x[1]===''));})[0];
+  if(media)return {ok:false,msg:lab+': falta un número en uno de los '+un+'s (escribe los dos lados).'};
   var s=(m.s||[]).filter(function(x){return x&&x[0]!=null&&x[1]!=null&&x[0]!==''&&x[1]!=='';});
   if(!s.length)return {ok:false,vacio:true,msg:lab+': falta el marcador.'};
   var sl=0,sv=0;
@@ -3201,6 +3203,8 @@ function guardarPartidoEdit(){
   if(l!==dm.eqL) lineas.push('Local: <b>'+esc(nom(dm.eqL))+'</b> pasa a ser <b>'+esc(nom(l))+'</b>.');
   if(v!==dm.eqV) lineas.push('Visitante: <b>'+esc(nom(dm.eqV))+'</b> pasa a ser <b>'+esc(nom(v))+'</b>.');
   if(ex.goles.length||ex.tarjetas.length) lineas.push('Se borrarán los goles y tarjetas ya anotados a jugadores del equipo que sale.');
+  var _pr=DATA.partidos.concat(CAMP.partidos).filter(function(x){return x.id===dm.pid;})[0];
+  if(_pr&&_pr.det) lineas.push('Se borrará la planilla por sets del partido (jugadores y sets); el marcador se mantiene.');
   peligro({titulo:'¿Cambiar los equipos de este partido?',lineas:lineas,boton:'Sí, cambiar equipos',palabra:null,onOk:function(listo){listo();enviar();}});
 }
 /* ---- ventana de advertencia para acciones delicadas ---- */

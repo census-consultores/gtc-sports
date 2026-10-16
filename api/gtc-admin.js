@@ -289,6 +289,9 @@ export default async function handler(req, res) {
         const det = limpiarDetalle(body.detalle);
         if (det === false) return res.status(400).json({ ok: false, msg: 'La planilla del partido no es válida.' });
         patch.detalle = estado === 'fin' ? det : null;
+      } else {
+        // Panel sin planilla (app 1.1.2 o deportes sin sets): el marcador nuevo invalida la planilla anterior.
+        patch.detalle = null;
       }
       await sb('partidos?id=eq.' + encodeURIComponent(pid), {
         method: 'PATCH', prefer: 'return=minimal',
