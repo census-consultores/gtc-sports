@@ -3,7 +3,7 @@
 //   SUPABASE_URL, SUPABASE_SECRET_KEY
 // Acciones (POST JSON {accion, ...}):
 //   login            {correo, clave}                       -> {ok, token, nombre, rol, correo}
-//   resultado        {token, partido_id, gl, gv, goles[], tarjetas[]}
+//   resultado        {token, partido_id, gl, gv, goles[], tarjetas[], detalle?}  (detalle = planilla por sets: tenis, pádel, ping pong, pickleball, beach volley)
 //   partido_edit     {token, partido_id, fecha, hora, sede, local_id, visita_id}  (si cambian los equipos, borra goles/tarjetas de los equipos salientes)
 //   partido_del      {token, partido_id}                    (borra el partido; goles y tarjetas en cascada)
 //   equipo_add       {token, tor, nombre, cat?, delegado?}  (Olimpiadas: tor=olimpiadas2026 + cat)
@@ -44,6 +44,30 @@ function readToken(token) {
   let obj; try { obj = JSON.parse(unb64u(p)); } catch (e) { return null; }
   if (!obj || obj.exp < Date.now()) return null;
   return obj; // {c, r, exp}
+}
+
+// Planilla por sets: solo se guarda una estructura acotada (la valida y calcula el panel).
+function limpiarDetalle(d) {
+  if (d == null) return null;
+  if (typeof d !== 'object' || !Array.isArray(d.m) || d.m.length > 3) return false;
+  const lado = x => (x === 'l' || x === 'v') ? x : null;
+  const ids = a => (Array.isArray(a) ? a : []).slice(0, 4).map(String).filter(x => /^[A-Za-z0-9_-]{1,64}$/.test(x));
+  const out = { v: 1, wo: lado(d.wo), m: [] };
+  if (lado(d.dg)) out.dg = d.dg;
+  for (const m of d.m) {
+    if (!m || !/^(S1|S2|D|P1|P2|P3|M)$/.test(String(m.k))) return false;
+    const s = Array.isArray(m.s) ? m.s : [];
+    if (s.length > 3) return false;
+    const sets = [];
+    for (const x of s) {
+      if (!Array.isArray(x) || x.length !== 2) return false;
+      const a = parseInt(x[0], 10), b = parseInt(x[1], 10);
+      if (!(a >= 0 && a <= 99 && b >= 0 && b <= 99)) return false;
+      sets.push([a, b]);
+    }
+    out.m.push({ k: String(m.k), jl: ids(m.jl), jv: ids(m.jv), s: sets, wo: lado(m.wo) });
+  }
+  return out;
 }
 
 async function sb(path, opts = {}) {
@@ -258,10 +282,17 @@ export default async function handler(req, res) {
       if (!pid) return res.status(400).json({ ok: false, msg: 'Falta el partido.' });
       const gl = body.gl == null || body.gl === '' ? null : parseInt(body.gl, 10);
       const gv = body.gv == null || body.gv === '' ? null : parseInt(body.gv, 10);
+      if ((gl != null && !(gl >= 0)) || (gv != null && !(gv >= 0))) return res.status(400).json({ ok: false, msg: 'Marcador no válido.' });
       const estado = (gl != null && gv != null) ? 'fin' : 'pre';
+      const patch = { gl, gv, estado, updated_at: new Date().toISOString() };
+      if ('detalle' in body) {
+        const det = limpiarDetalle(body.detalle);
+        if (det === false) return res.status(400).json({ ok: false, msg: 'La planilla del partido no es válida.' });
+        patch.detalle = estado === 'fin' ? det : null;
+      }
       await sb('partidos?id=eq.' + encodeURIComponent(pid), {
         method: 'PATCH', prefer: 'return=minimal',
-        body: JSON.stringify({ gl, gv, estado, updated_at: new Date().toISOString() })
+        body: JSON.stringify(patch)
       });
       // reemplazar goles y tarjetas de ese partido
       await sb('goles?partido_id=eq.' + encodeURIComponent(pid), { method: 'DELETE', prefer: 'return=minimal' });
@@ -296,6 +327,7 @@ export default async function handler(req, res) {
         if (tor === 'olimpiadas2026' && eqs.some(e => e.cat !== (patch.cat || p0.cat))) return res.status(400).json({ ok: false, msg: 'Los dos equipos deben ser de la categoría del partido.' });
       }
       patch.updated_at = new Date().toISOString();
+      if (cambianEquipos) patch.detalle = null; // la planilla tenía jugadores de los equipos anteriores
       await sb('partidos?id=eq.' + encodeURIComponent(pid), { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(patch) });
       if (cambianEquipos) {
         // goles y tarjetas de jugadores de los equipos que salieron del partido ya no corresponden
