@@ -398,17 +398,25 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
 .pmf{font-size:11.5px;color:var(--muted);margin-top:8px}
 .plprev{margin-top:4px;padding:11px 13px;border-radius:12px;background:var(--line-2);font-size:13px;line-height:1.5}
 .plprev .pe{color:#C0352B;font-weight:700}
-.wsT,.wsApp{display:none}
 /* ===== Panel de Deportes en la web: espacio de trabajo de escritorio ===== */
 @media (min-width:900px){
   html.ws body{max-width:none}
-  html.ws #nav{display:none}
   html.ws #instbn{display:none!important}
+  /* Navegación dentro de la barra superior */
+  html.ws #nav{top:calc(var(--sat) + 10px);bottom:auto;left:50%;transform:translateX(-50%);width:auto;max-width:none;z-index:61;
+    padding:0;gap:4px;background:none;border:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;height:44px;align-items:center}
+  html.ws #nav button,:root[data-theme="light"].ws #nav button{flex:none;flex-direction:row;gap:8px;font-size:14px;font-weight:700;padding:9px 14px;border-radius:11px;color:rgba(255,255,255,.72)}
+  html.ws #nav button .i{width:19px;height:19px}
+  html.ws #nav button:hover{color:#fff;background:rgba(255,255,255,.08)}
+  html.ws #nav button:active{transform:none}
+  html.ws #nav button[aria-current]{color:var(--gold);background:rgba(201,162,39,.14)}
+  html.ws #nav .navPanel{margin-left:10px;border:1px solid rgba(255,255,255,.2)}
+  /* Contenido a todo el ancho: tarjetas de partido en dos columnas, lo demás a lo ancho */
+  html.ws #app>.wrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;align-content:start}
+  html.ws #app>.wrap>*{grid-column:1/-1;min-width:0}
+  html.ws #app>.wrap>.mc{grid-column:auto;margin-bottom:12px}
   html.ws main{padding-bottom:28px}
   html.ws #top{padding:0 28px;gap:14px}
-  html.ws #top .wsT{display:block;font-size:15px;font-weight:700;color:rgba(255,255,255,.72);padding-left:16px;margin-left:2px;border-left:1px solid rgba(255,255,255,.18)}
-  html.ws #top .wsApp{display:inline-flex;align-items:center;height:36px;padding:0 15px;border-radius:10px;border:1px solid rgba(255,255,255,.22);color:#fff;font-weight:700;font-size:13px}
-  html.ws #top .wsApp:hover{background:rgba(255,255,255,.08)}
   html.ws #app>.wrap{max-width:1320px;margin:0 auto;padding:0 32px}
   html.ws #app>.wrap:first-child{padding-top:16px}
   html.ws h1.page{font-size:32px}
@@ -817,21 +825,16 @@ var NAVMAP={inicio:'inicio',torneos:'torneos',torneo:'torneos',equipo:'torneos',
   calendario:'calendario',novedades:'novedades',mas:'mas',reglamento:'mas',acerca:'mas'};
 /* Panel de Deportes en la web: espacio de trabajo a pantalla completa (la app nativa no cambia) */
 function wsModo(){
-  var on=!esNativo()&&(S.vista==='deportes'||S.vista==='depmatch');
-  document.documentElement.classList.toggle('ws',on);
-  var top=document.getElementById('top');
-  if(top&&!document.getElementById('wsT')){
-    var wm=top.querySelector('.wmT');
-    if(wm)wm.insertAdjacentHTML('afterend','<span class="wsT" id="wsT">Panel de Deportes</span>');
-    var th=document.getElementById('btTheme');
-    if(th)th.insertAdjacentHTML('beforebegin','<button class="wsApp" type="button" onclick="goGlobal(\'inicio\')">Ver la app</button>');
-  }
+  /* En la web (no en la app nativa) la app usa todo el ancho; el CSS solo actúa desde 900 px */
+  document.documentElement.classList.toggle('ws',!esNativo());
 }
 function pintaNav(){
   var n=document.getElementById('nav');
   if(S.vista==='splash'||S.vista==='contacto'||(S.vista==='acceso'&&esComputadora())){n.hidden=true;return;}
   n.hidden=false; var act=NAVMAP[S.vista]||'';
-  n.innerHTML=NAV.map(function(x){return '<button onclick="goGlobal(\''+x[0]+'\')" '+(x[0]===act?'aria-current="page"':'')+'>'+sv(IC[x[0]])+x[1]+'</button>';}).join('');
+  var _pn=document.documentElement.classList.contains('ws')&&window.innerWidth>=900&&gtcAuth.puedeEditar(), _ep=(S.vista==='deportes'||S.vista==='depmatch');
+  n.innerHTML=NAV.map(function(x){return '<button onclick="goGlobal(\''+x[0]+'\')" '+(x[0]===act&&!(_pn&&_ep)?'aria-current="page"':'')+'>'+sv(IC[x[0]])+x[1]+'</button>';}).join('')+
+    (_pn?'<button class="navPanel" onclick="S.hist=[];ir(\'deportes\',{seg:\'result\'},true)" '+(_ep?'aria-current="page"':'')+'><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5h6v2.5H9zM8.5 11h7M8.5 15h5"/></svg>Panel de Deportes</button>':'');
 }
 function goGlobal(v){ if(v==='inicio'||v==='torneos'||v==='calendario'||v==='novedades'||v==='mas'){S.hist=[];S.torneo=(v==='inicio'||v==='torneos'||v==='calendario'||v==='novedades')?null:S.torneo;} ir(v,{},true);}
 
