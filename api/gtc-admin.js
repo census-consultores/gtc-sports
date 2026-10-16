@@ -269,7 +269,7 @@ export default async function handler(req, res) {
 
     // ---- CUENTAS / CONTACTOS (lectura, solo superadmin por ser datos personales) ----
     if (accion === 'cuentas_list') {
-      if (sess.r !== 'superadmin') return res.status(403).json({ ok: false, msg: 'Solo el superadministrador puede ver los contactos.' });
+      if (sess.r !== 'superadmin' && sess.r !== 'directorio') return res.status(403).json({ ok: false, msg: 'Solo el superadministrador y el Directorio pueden ver los contactos.' });
       const rows = await sb('cuentas?select=nombre,socio,equipo_id,cat,correo,whatsapp,consent,plataforma,created_at,last_login&order=last_login.desc&limit=3000');
       return res.status(200).json({ ok: true, cuentas: rows || [] });
     }

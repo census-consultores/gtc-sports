@@ -760,6 +760,8 @@ var gtcAuth = {
   ROLES_ADMIN:['superadmin','deportes','comision','directorio'],
   esAdmin:function(){var s=this.sesion||this.cargar();return !!(s&&(s.admin===true||this.ROLES_ADMIN.indexOf(s.rol)>=0));},
   esSuper:function(){var s=this.sesion||this.cargar();return !!(s&&s.rol==='superadmin');},
+  /* Contactos de socios: superadministrador y Directorio (Directiva del Club) */
+  puedeVerContactos:function(){var s=this.sesion||this.cargar();return !!(s&&(s.rol==='superadmin'||s.rol==='directorio'));},
   puedeEditar:function(){var s=this.sesion||this.cargar();return !!(s&&(s.rol==='superadmin'||s.rol==='deportes'));},
   loginAdmin:function(correo,clave){
     var self=this, c=String(correo||'').trim().toLowerCase(), k=String(clave||'');
@@ -1878,7 +1880,7 @@ function vMas(){
     h+='<div class="row-list">'+
       (gtcAuth.puedeEditar()?liNav('tabla','Panel de Deportes','Resultados, goles, tarjetas, equipos y jugadores',"ir('deportes',{})"):'')+
       liNav('bell','Analítica de uso','Quién ingresa, qué visitan e instalaciones',"ir('analitica',{})")+
-      (gtcAuth.esSuper()?liNav('correo','Contactos de socios','Correos y WhatsApp para comunicaciones',"ir('contactos',{})"):'')+
+      (gtcAuth.puedeVerContactos()?liNav('correo','Contactos de socios','Correos y WhatsApp para comunicaciones',"ir('contactos',{})"):'')+
       (gtcAuth.esSuper()?liNav('info','Usuarios y roles','Base de datos de accesos del equipo',"ir('admin',{})"):'')+
       '</div>';
   }
@@ -3588,7 +3590,7 @@ function registrarCuenta(datos){
   }catch(e){}
 }
 function vContactos(){
-  if(!gtcAuth.esSuper())return backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Sin acceso</h1><p class="page-sub">Los contactos son datos personales; solo el superadministrador puede verlos.</p></div>'+pie();
+  if(!gtcAuth.puedeVerContactos())return backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Sin acceso</h1><p class="page-sub">Los contactos son datos personales; solo el superadministrador y el Directorio pueden verlos.</p></div>'+pie();
   var h=backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Contactos de socios</h1>'+
     '<div id="ctBody"><div class="nota">Cargando…</div></div></div>'+pie();
   setTimeout(cargarContactos,60);
