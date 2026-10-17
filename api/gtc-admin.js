@@ -310,7 +310,7 @@ export default async function handler(req, res) {
       const msj = String(body.mensaje || '').replace(/\s+/g, ' ').trim().slice(0, 240);
       if (accion === 'aviso_prueba') {
         if (tit.length < 3 || msj.length < 5) return res.status(400).json({ ok: false, msg: 'Escribe un título y un mensaje.' });
-        const c = await enviarCorreos([String(sess.c || '')], '[Prueba] ' + tit, tit, [msj]);
+        const c = await enviarCorreos([String(sess.c || '')], '[Prueba] ' + tit, { tipo: 'prueba', etiqueta: 'Prueba · así lo verán los socios', titulo: tit, preheader: msj, parrafos: [msj] });
         return res.status(200).json({ ok: !c.error && c.enviados > 0, correo: sess.c, msg: c.error ? 'No se pudo enviar la prueba.' : undefined });
       }
       const alc = String(body.alcance || '');
@@ -334,9 +334,14 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, telefonos: tel, correos: d.correos.length });
       }
       if (tit.length < 3 || msj.length < 5) return res.status(400).json({ ok: false, msg: 'Escribe un título y un mensaje.' });
+      const CATN = { I1: 'Infantil 1', I2: 'Infantil 2', I3: 'Infantil 3', I4: 'Infantil 4', J1: 'Juvenil 1', J2: 'Juvenil 2', J3: 'Juvenil 3', SEN: 'Senior', MAS: 'Máster', DAM: 'Damas' };
+      let alcNombre = 'Todos los socios';
+      if (alc === 'categoria') alcNombre = 'Categoría ' + (CATN[body.cat] || body.cat);
+      if (alc === 'equipo') { const en = await sb('equipos?select=nombre&id=eq.' + encodeURIComponent(String(body.equipo_id))); alcNombre = 'Equipo ' + String(((en || [])[0] || {}).nombre || '').toLowerCase().replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase()); }
       const r = await avisar({
         clave: 'anu:' + Date.now().toString(36) + ':' + crypto.randomBytes(3).toString('hex'), tipo: 'anuncio', alcance: alcTxt, autor: sess.c,
-        equipos, titulo: tit, cuerpo: msj, asunto: tit, lineas: [msj], correo: body.correo !== false
+        equipos, titulo: tit, cuerpo: msj, asunto: tit, correo: body.correo !== false,
+        mail: { tipo: 'anuncio', titulo: tit, preheader: msj, parrafos: [msj], filas: [['Para', alcNombre]] }
       });
       return res.status(200).json({ ...r, ok: true, aviso: r.error || null });
     }
@@ -441,13 +446,18 @@ export default async function handler(req, res) {
     }
 
     if (accion === 'partido_add') {
-      const row = { tor: body.tor || 'olimpiadas2026', tipo: body.tipo || 'vs', gl: null, gv: null, estado: 'pre' };
+      const row = { tor: body.tor || 'olimpiadas2026', tipo: body.tipo === 'gen' ? 'gen' : 'vs', gl: null, gv: null, estado: 'pre' };
       ['disciplina', 'cat', 'fase', 'fecha', 'hora', 'sede', 'local_id', 'visita_id'].forEach(k => {
         if (body[k] != null && String(body[k]) !== '') row[k] = body[k];
       });
+      // Fecha general (natación, carrera…): compiten todos los equipos de la categoría (o de todas), sin local ni visitante.
+      if (row.tipo === 'gen') {
+        delete row.local_id; delete row.visita_id; row.fase = 'general';
+        if (!row.disciplina || !row.fecha) return res.status(400).json({ ok: false, msg: 'Faltan datos: disciplina y fecha.' });
+      } else
       if (!row.disciplina || !row.fecha || !row.local_id || !row.visita_id)
         return res.status(400).json({ ok: false, msg: 'Faltan datos: disciplina, fecha y ambos equipos.' });
-      if (row.local_id === row.visita_id)
+      if (row.tipo !== 'gen' && row.local_id === row.visita_id)
         return res.status(400).json({ ok: false, msg: 'El equipo local y el visitante no pueden ser el mismo.' });
       // id correlativo pXXXX (a partir del mayor existente); si no se puede, uno único por tiempo
       let id = 'p' + Date.now().toString(36);
