@@ -92,6 +92,16 @@ async function sb(path, opts = {}) {
   return data;
 }
 
+// Lectura completa por páginas (PostgREST entrega como máximo 1000 filas por consulta)
+async function sbTodo(path) {
+  let out = [];
+  for (let from = 0; from < 50000; from += 1000) {
+    const rows = await sb(path, { headers: { 'Range-Unit': 'items', Range: from + '-' + (from + 999) } });
+    out = out.concat(rows || []);
+    if (!rows || rows.length < 1000) break;
+  }
+  return out;
+}
 // Verifica un access_token de Supabase Auth (socio) y devuelve {id, email} o null
 async function authUser(at) {
   if (!at) return null;
@@ -233,23 +243,27 @@ export default async function handler(req, res) {
     if (accion === 'nominas') {
       const adm = readToken(body.token);
       const esAdm = adm && ROLES_READ.indexOf(adm.r) >= 0;
-      const u = esAdm ? null : await authUser(String(body.access_token || ''));
-      if (!esAdm && !u) return res.status(401).json({ ok: false, msg: 'Inicia sesión.' });
-      const eqs = await sb('equipos?select=id&cat=in.(' + CATS_MENORES.join(',') + ')');
-      const ids = (eqs || []).map(e => e.id); if (!ids.length) return res.status(200).json({ ok: true, jugadores: [] });
-      const lista = ids.map(encodeURIComponent).join(',');
-      let filtro = '';
-      if (!esAdm) {
-        const g = await sb('goles?select=jugador_id&equipo_id=in.(' + lista + ')&limit=5000');
-        const t = await sb('tarjetas?select=jugador_id&equipo_id=in.(' + lista + ')&limit=5000');
-        const js = [...new Set([...(g || []), ...(t || [])].map(x => x.jugador_id).filter(Boolean))];
-        if (!js.length) return res.status(200).json({ ok: true, jugadores: [] });
-        filtro = '&id=in.(' + js.map(encodeURIComponent).join(',') + ')';
+      let ok = esAdm;
+      if (!ok) {
+        const u = await authUser(String(body.access_token || ''));
+        // solo socios registrados en la app (con su cuenta vinculada), no cualquier cuenta de Apple o Google
+        if (u) { const c = await sb('cuentas?select=id&auth_uid=eq.' + encodeURIComponent(u.id) + '&limit=1'); ok = !!(c && c.length); }
       }
-      const cols = esAdm ? 'id,equipo_id,nombre,num,socio,invitado,orden' : 'id,equipo_id,nombre,num';
-      const rows = await sb('jugadores?select=' + cols + '&activo=eq.true&equipo_id=in.(' + lista + ')' + filtro + '&order=orden,id&limit=5000');
+      if (!ok) return res.status(401).json({ ok: false, msg: 'Inicia sesión.' });
+      const eqs = await sb('equipos?select=id&cat=in.(' + CATS_MENORES.join(',') + ')');
+      const ids = new Set((eqs || []).map(e => e.id));
+      if (!ids.size) return res.status(200).json({ ok: true, jugadores: [] });
+      const lista = [...ids].map(encodeURIComponent).join(',');
+      const todos = await sbTodo('jugadores?select=id,equipo_id,nombre,num,socio,invitado,orden&activo=eq.true&equipo_id=in.(' + lista + ')&order=orden,id');
+      let rows = todos;
+      if (!esAdm) {
+        const g = await sbTodo('goles?select=jugador_id&equipo_id=in.(' + lista + ')&order=id');
+        const t = await sbTodo('tarjetas?select=jugador_id&equipo_id=in.(' + lista + ')&order=id');
+        const con = new Set([...g, ...t].map(x => x.jugador_id).filter(Boolean));
+        rows = todos.filter(j => con.has(j.id)).map(j => ({ id: j.id, equipo_id: j.equipo_id, nombre: j.nombre, num: j.num }));
+      }
       res.setHeader('Cache-Control', 'no-store');
-      return res.status(200).json({ ok: true, jugadores: rows || [] });
+      return res.status(200).json({ ok: true, jugadores: rows });
     }
 
     // ---- VINCULAR EL TELÉFONO A LA SESIÓN (avisos push): la identidad la decide el servidor ----
