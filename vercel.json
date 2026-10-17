@@ -1,5 +1,9 @@
 {
   "crons": [
-    { "path": "/api/avisos-cron", "schedule": "0 12 * * *" }
-  ]
+    {
+      "path": "/api/avisos-cron",
+      "schedule": "0 12 * * *"
+    }
+  ],
+  "cleanUrls": true
 }

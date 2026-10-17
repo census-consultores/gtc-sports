@@ -40,10 +40,11 @@ export default async function handler(req, res) {
     const evs = rows.map(p => evento({ ...p, nL: nom(p.local_id), nV: nom(p.visita_id) }));
     const body = ics(evs, nombre);
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-    res.setHeader('Content-Disposition', (q.equipo ? 'inline' : 'attachment') + '; filename="gtc-sports.ics"');
+    res.setHeader('Content-Disposition', 'inline; filename="gtc-sports.ics"');
     res.setHeader('Cache-Control', 'public, max-age=300');
     return res.status(200).send(body);
   } catch (e) {
+    console.error('ics', e);
     return res.status(500).send('No se pudo generar el calendario.');
   }
 }

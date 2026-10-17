@@ -9,6 +9,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = 'GTC Sports <notificaciones@gtcsports.ec>';
 const REPLY = ['deportes@guayaquiltenisclub.ec', 'john.arias@censusconsultores.com.ec'];
 const APP = process.env.GTC_APP_URL || 'https://gtcsports.ec';
+const BAJA = { 'List-Unsubscribe': '<mailto:deportes@guayaquiltenisclub.ec?subject=Baja%20de%20avisos%20GTC%20Sports>' };
 // Solo el equipo del Club (token firmado por /api/gtc-admin, roles Deportes o superadmin) puede enviar correos.
 const SECRET = process.env.SUPABASE_SECRET_KEY;
 function tokenOk(token) {
@@ -32,16 +33,16 @@ const PLANTILLAS = {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
-    const { plantilla, destinatario, datos = {}, token } = req.body || {};
+    const { plantilla: tipo, destinatario, datos = {}, token } = req.body || {};
     if (!tokenOk(token)) return res.status(401).json({ error: 'No autorizado' });
     if (!/^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/.test(String(destinatario || ''))) return res.status(400).json({ error: 'Destinatario no válido' });
-    if (!plantilla || !destinatario) return res.status(400).json({ error: 'Faltan plantilla o destinatario' });
-    const fn = PLANTILLAS[plantilla];
+    if (!tipo || !destinatario) return res.status(400).json({ error: 'Faltan plantilla o destinatario' });
+    const fn = PLANTILLAS[tipo];
     if (!fn) return res.status(400).json({ error: 'Plantilla no válida' });
     const t = fn(datos || {});
     const asunto = String(t.asunto || '').replace(/[\r\n]+/g, ' ').slice(0, 150);
     const html = plantilla(t.datos);
-    const { data, error } = await resend.emails.send({ from: FROM, to: destinatario, replyTo: REPLY, subject: asunto, html });
+    const { data, error } = await resend.emails.send({ from: FROM, to: destinatario, replyTo: REPLY, subject: asunto, html, headers: BAJA });
     if (error) return res.status(502).json({ error });
     return res.status(200).json({ ok: true, id: data?.id });
   } catch (e) {

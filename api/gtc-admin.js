@@ -33,6 +33,7 @@ const KEY = process.env.SUPABASE_SECRET_KEY;
 const SECRET = process.env.SUPABASE_SECRET_KEY;
 const ROLES_WRITE = ['superadmin', 'deportes'];
 const ROLES_READ = ['superadmin', 'deportes', 'comision', 'directorio'];
+const CATS_MENORES = ['I1', 'I2', 'I3', 'I4', 'J1', 'J2', 'J3'];
 
 function sha256(s) { return crypto.createHash('sha256').update(String(s)).digest('hex'); }
 function b64u(s) { return Buffer.from(s).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
@@ -147,9 +148,9 @@ export default async function handler(req, res) {
       if (!socio) return res.status(200).json({ ok: false, campo: 'socio', msg: 'Escribe tu código de socio.' });
       if (cedula.length !== 10) return res.status(200).json({ ok: false, campo: 'cedula', msg: 'La cédula debe tener 10 dígitos.' });
       const rows = await sb('jugadores?select=id,nombre,num,socio,invitado,equipo_id&activo=eq.true&ced_real=eq.' + encodeURIComponent(cedula));
-      if (!rows || !rows.length) return res.status(200).json({ ok: false, campo: 'cedula', msg: 'No encontramos esa cédula. Verifica los datos o escribe a deportes@gtcsports.ec.' });
+      if (!rows || !rows.length) return res.status(200).json({ ok: false, campo: 'cedula', msg: 'No encontramos esa cédula. Verifica los datos o escribe a deportes@guayaquiltenisclub.ec.' });
       const match = rows.filter(j => socioIgual(socio, j.socio));
-      if (!match.length) return res.status(200).json({ ok: false, campo: 'socio', msg: 'La cédula existe, pero el código de socio no coincide. Revisa tu número de socio o escribe a deportes@gtcsports.ec.' });
+      if (!match.length) return res.status(200).json({ ok: false, campo: 'socio', msg: 'La cédula existe, pero el código de socio no coincide. Revisa tu número de socio o escribe a deportes@guayaquiltenisclub.ec.' });
       return res.status(200).json({ ok: true, personas: match.map(j => ({ id: j.id, nombre: j.nombre, num: j.num, socio: j.socio, invitado: !!j.invitado, equipo_id: j.equipo_id })) });
     }
 
@@ -201,12 +202,22 @@ export default async function handler(req, res) {
         return res.status(401).json({ ok: false, msg: 'Tu sesión no es válida. Vuelve a entrar e inténtalo de nuevo.' });
       }
       if (!uid) return res.status(401).json({ ok: false, msg: 'Tu sesión no es válida.' });
-      // 2) borrar los datos personales de contacto del socio (tabla cuentas)
+      // 2) dar de baja los avisos de ese teléfono y de esa cuenta, y anonimizar su analítica
+      try {
+        const cs = await sb('cuentas?select=socio&auth_uid=eq.' + encodeURIComponent(uid));
+        const claves = new Set(); if (email) claves.add(email);
+        (cs || []).forEach(c => { if (c.socio) { claves.add(String(c.socio)); const b = baseNum(c.socio); if (b) claves.add(b); } });
+        for (const k of claves) await sb('gtc_push_tokens?sess_key=eq.' + encodeURIComponent(k), { method: 'DELETE', prefer: 'return=minimal' });
+        const pt = String(body.push_token || '');
+        if (pt) await sb('gtc_push_tokens?token=eq.' + encodeURIComponent(pt), { method: 'DELETE', prefer: 'return=minimal' });
+        for (const k of claves) if (k.indexOf('@') < 0) await sb('eventos?socio=eq.' + encodeURIComponent(k), { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ socio: null, nombre: null, cedula: null }) });
+      } catch (e) { /* continuar con la eliminación */ }
+      // 3) borrar los datos personales de contacto del socio (tabla cuentas)
       try {
         await sb('cuentas?auth_uid=eq.' + encodeURIComponent(uid), { method: 'DELETE', prefer: 'return=minimal' });
         if (email) await sb('cuentas?auth_email=eq.' + encodeURIComponent(email), { method: 'DELETE', prefer: 'return=minimal' });
       } catch (e) { /* si no hay fila, continuar: lo esencial es eliminar la identidad de acceso */ }
-      // 3) borrar la identidad de acceso (Apple / Google / correo) en Supabase Auth
+      // 4) borrar la identidad de acceso (Apple / Google / correo) en Supabase Auth
       try {
         const dr = await fetch(URL + '/auth/v1/admin/users/' + encodeURIComponent(uid), {
           method: 'DELETE', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY }
@@ -215,6 +226,47 @@ export default async function handler(req, res) {
       } catch (e) {
         return res.status(200).json({ ok: false, msg: 'No pudimos completar la eliminación en este momento. Inténtalo de nuevo en unos minutos.' });
       }
+      return res.status(200).json({ ok: true });
+    }
+
+    // ---- NÓMINAS DE MENORES: administración = completas; socio con sesión = solo quienes tienen goles o tarjetas ----
+    if (accion === 'nominas') {
+      const adm = readToken(body.token);
+      const esAdm = adm && ROLES_READ.indexOf(adm.r) >= 0;
+      const u = esAdm ? null : await authUser(String(body.access_token || ''));
+      if (!esAdm && !u) return res.status(401).json({ ok: false, msg: 'Inicia sesión.' });
+      const eqs = await sb('equipos?select=id&cat=in.(' + CATS_MENORES.join(',') + ')');
+      const ids = (eqs || []).map(e => e.id); if (!ids.length) return res.status(200).json({ ok: true, jugadores: [] });
+      const lista = ids.map(encodeURIComponent).join(',');
+      let filtro = '';
+      if (!esAdm) {
+        const g = await sb('goles?select=jugador_id&equipo_id=in.(' + lista + ')&limit=5000');
+        const t = await sb('tarjetas?select=jugador_id&equipo_id=in.(' + lista + ')&limit=5000');
+        const js = [...new Set([...(g || []), ...(t || [])].map(x => x.jugador_id).filter(Boolean))];
+        if (!js.length) return res.status(200).json({ ok: true, jugadores: [] });
+        filtro = '&id=in.(' + js.map(encodeURIComponent).join(',') + ')';
+      }
+      const cols = esAdm ? 'id,equipo_id,nombre,num,socio,invitado,orden' : 'id,equipo_id,nombre,num';
+      const rows = await sb('jugadores?select=' + cols + '&activo=eq.true&equipo_id=in.(' + lista + ')' + filtro + '&order=orden,id&limit=5000');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json({ ok: true, jugadores: rows || [] });
+    }
+
+    // ---- VINCULAR EL TELÉFONO A LA SESIÓN (avisos push): la identidad la decide el servidor ----
+    if (accion === 'push_vincular') {
+      const pt = String(body.push_token || '').slice(0, 400);
+      if (!pt) return res.status(400).json({ ok: false });
+      let clave = null;
+      const adm = readToken(body.token);
+      if (adm && adm.c) clave = String(adm.c).toLowerCase();
+      else {
+        const u = await authUser(String(body.access_token || ''));
+        if (!u) return res.status(401).json({ ok: false });
+        const cs = await sb('cuentas?select=socio&auth_uid=eq.' + encodeURIComponent(u.id) + '&limit=1');
+        clave = (cs && cs[0] && cs[0].socio) ? String(cs[0].socio) : (u.email || null);
+      }
+      if (!clave) return res.status(200).json({ ok: true });
+      await sb('gtc_push_tokens?token=eq.' + encodeURIComponent(pt), { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ sess_key: clave, updated_at: new Date().toISOString() }) });
       return res.status(200).json({ ok: true });
     }
 
