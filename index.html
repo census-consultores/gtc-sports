@@ -502,7 +502,10 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
 .calbar-in{max-width:620px;margin:0 auto;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh-lg);padding:10px 12px}
 html.ws .calbar{bottom:20px}
 .calrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.calrow .btn{width:auto;flex:1 1 200px;padding:11px 14px;font-size:13.5px}
+.calrow .btn{width:auto;flex:1 1 0;min-width:0;padding:11px 8px;font-size:13.5px;white-space:nowrap}
+.calopt{display:inline-flex!important;align-items:center;justify-content:center;gap:8px}
+.calopt svg{flex:0 0 18px}
+.calfull{width:100%!important}
 .avchk{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.4;color:var(--muted);margin-top:12px;cursor:pointer}
 .avchk input{width:17px;height:17px;flex:0 0 17px;margin:1px 0 0;accent-color:var(--navy)}
 .avcnt{font-size:12.5px;color:var(--muted);margin:10px 0 2px}
@@ -3912,11 +3915,21 @@ function calGoogleUrl(p){
     '&location='+encodeURIComponent([p.sede,'Guayaquil Tenis Club'].filter(Boolean).join(' · '))+'&ctz=America%2FGuayaquil';
 }
 function calIcsUrl(ids){return 'https://www.gtcsports.ec/api/ics?ids='+encodeURIComponent([].concat(ids).join(','));}
+/* Íconos genéricos (no logos de marca) para cada destino */
+var CAL_IC={
+  google:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M12 13v5M9.5 15.5h5"/></svg>',
+  iphone:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10.5 18.5h3"/></svg>',
+  outlook:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/></svg>'
+};
+/* Opciones según el teléfono: en Android no se ofrece iPhone; en iPhone y en la computadora, las tres */
+function calOpciones(){var pl=plataforma();return pl==='android'?['google','outlook']:['google','iphone','outlook'];}
+var CAL_TXT={google:'Google Calendar',iphone:'iPhone',outlook:'Outlook'};
+function calBtn(dest,onclick,pri,corto){return '<button class="btn'+(pri?'':' line')+' calopt" onclick="'+onclick+'">'+CAL_IC[dest]+'<span>'+(corto&&dest==='google'?'Google':CAL_TXT[dest])+'</span></button>';}
 function calBotonesHTML(p){
   var g=calGoogleUrl(p); window.__calP=p;
-  return secHead('Agregar a mi calendario')+'<div class="calrow">'+
-    (g?'<button class="btn" onclick="abrirExterno(calGoogleUrl(window.__calP))">Google Calendar</button>':'')+
-    '<button class="btn line" onclick="abrirExterno(calIcsUrl(\''+p.id+'\'))">iPhone, Android u Outlook</button></div>'+
+  var ops=calOpciones().filter(function(d){return d!=='google'||g;});
+  return secHead('Agregar a mi calendario')+'<div class="calrow">'+ops.map(function(d,i){
+    return calBtn(d,d==='google'?'abrirExterno(calGoogleUrl(window.__calP))':'abrirExterno(calIcsUrl(\''+p.id+'\'))',i===0,true);}).join('')+'</div>'+
     '<div class="nota" style="margin-top:8px">Se agrega con la fecha, la hora y la cancha, y te recuerda una hora antes. Para varios partidos a la vez, usa <b>Calendario → Agregar a mi calendario</b>.</div>';
 }
 function calSelToggle(id){var s=window.__calSel||(window.__calSel={}); if(s[id])delete s[id]; else s[id]=1; render();}
@@ -3924,23 +3937,34 @@ function calSelDia(f){var s=window.__calSel||(window.__calSel={});
   visP(allPartidos()).filter(function(p){return p.f===f&&TOR[p.tor]&&TOR[p.tor].estado!=='finalizado';}).forEach(function(p){s[p.id]=1;}); render();}
 function calExportar(){
   var ids=Object.keys(window.__calSel||{}); if(!ids.length)return;
-  var lista=allPartidos().filter(function(p){return ids.indexOf(p.id)>=0;});
-  var g=ids.length===1&&lista[0]?calGoogleUrl(liveState(lista[0])):null;
-  peligro({tono:'azul',titulo:'Agregar '+ids.length+' '+(ids.length===1?'partido':'partidos')+' a tu calendario',palabra:null,boton:'Descargar calendario',lineas:[
-    '<b>iPhone:</b> se abre el archivo y tocas «Agregar todos».',
-    '<b>Android:</b> se abre con Google Calendar o tu app de calendario.',
-    '<b>Google Calendar en la computadora:</b> descarga el archivo y luego, en Google Calendar, Configuración → Importar.'+(g?' Para un solo partido también puedes usar el botón de Google Calendar del partido.':''),
-    'Cada partido te recuerda una hora antes.'],
-    onOk:function(listo){listo(); abrirExterno(calIcsUrl(ids)); window.__calSel=null; render();}});
+  var prev=document.getElementById('ovCal'); if(prev)prev.remove();
+  var ov=document.createElement('div'); ov.id='ovCal';
+  ov.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(6,8,24,.7);display:flex;align-items:flex-end;justify-content:center;padding:16px';
+  window.__calIds=ids;
+  var ayuda={google:'Se descarga el calendario: en Android se abre con Google Calendar; en la computadora, impórtalo en Google Calendar → Configuración → Importar.',
+    iphone:'Se abre el calendario y tocas «Agregar todos».', outlook:'Se descarga el calendario y Outlook lo agrega.'};
+  ov.innerHTML='<div class="card" style="max-width:440px;width:100%;padding:18px 18px 14px;margin-bottom:calc(var(--navb) + 8px)">'+
+    '<div style="font-weight:800;font-size:17px;margin-bottom:4px">Agregar '+ids.length+' '+(ids.length===1?'partido':'partidos')+' a tu calendario</div>'+
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">Cada partido te recuerda una hora antes.</div>'+
+    calOpciones().map(function(d,i){return '<div style="margin-bottom:10px">'+calBtn(d,'calExportarA(\''+d+'\')',i===0).replace('calopt','calopt calfull')+
+      '<div style="font-size:11.5px;color:var(--muted-2);margin:4px 2px 0;text-align:justify">'+ayuda[d]+'</div></div>';}).join('')+
+    '<button class="btn line" style="margin-top:4px" onclick="document.getElementById(\'ovCal\').remove()">Cancelar</button></div>';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  document.body.appendChild(ov);
+}
+function calExportarA(d){
+  var ids=window.__calIds||[]; var ov=document.getElementById('ovCal'); if(ov)ov.remove();
+  if(d==='google'&&ids.length===1){var p=allPartidos().filter(function(x){return x.id===ids[0];})[0];var g=p&&calGoogleUrl(liveState(p));if(g){abrirExterno(g);window.__calSel=null;render();return;}}
+  abrirExterno(calIcsUrl(ids)); window.__calSel=null; render();
 }
 function calSuscribirHTML(e){
   var feed='https://www.gtcsports.ec/api/ics?equipo='+encodeURIComponent(e.id);
   var web=feed.replace(/^https:/,'webcal:');
-  window.__calFeed=feed;
+  window.__calWeb=web;
+  var acc={google:"abrirExterno('https://calendar.google.com/calendar/r?cid='+encodeURIComponent(window.__calWeb))",iphone:'abrirExterno(window.__calWeb)',outlook:'abrirExterno(window.__calWeb)'};
   return '<div class="card" style="padding:12px 14px;margin-bottom:10px"><div style="font-weight:800;font-size:13.5px">Todos los partidos del equipo en tu calendario</div>'+
-    '<div style="font-size:12.5px;color:var(--muted);margin:3px 0 10px;line-height:1.45">Suscríbete una vez: los partidos nuevos y los cambios de hora o cancha aparecen solos.</div>'+
-    '<div class="calrow" style="margin-top:0"><button class="btn" onclick="abrirExterno(\'https://calendar.google.com/calendar/r?cid='+encodeURIComponent(web)+'\')">Google Calendar</button>'+
-    '<button class="btn line" onclick="abrirExterno(\''+web+'\')">iPhone u Outlook</button></div></div>';
+    '<div style="font-size:12.5px;color:var(--muted);margin:3px 0 10px;line-height:1.45;text-align:justify">Suscríbete una vez: los partidos nuevos y los cambios de hora o cancha aparecen solos.</div>'+
+    '<div class="calrow" style="margin-top:0">'+calOpciones().map(function(d,i){return calBtn(d,acc[d],i===0,true);}).join('')+'</div></div>';
 }
 
 /* ---- registrar vistas nuevas ---- */
