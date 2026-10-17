@@ -347,7 +347,7 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
   border-radius:14px;padding:14px;align-items:flex-start}
 .prot .i{width:24px;height:24px;stroke:var(--laurel);fill:none;stroke-width:1.9;flex:none}
 .prot b{font-size:13px;color:var(--ink);display:block;margin-bottom:3px} .prot p{font-size:11.5px;color:var(--muted);line-height:1.5}
-.nota{font-size:11.5px;color:var(--muted-2);line-height:1.55;background:var(--line-2);border-radius:12px;padding:11px 13px}
+.nota{font-size:12px;color:var(--muted);line-height:1.55;background:var(--line-2);border-radius:12px;padding:11px 13px}
 
 /* fichas jugador */
 .player{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line-2)}
@@ -489,20 +489,34 @@ table.st{width:100%;border-collapse:collapse;font-size:13px}
 }
 @media (max-width:620px){.an-people{grid-template-columns:1fr}}
 @media (max-width:380px){.an-rank{grid-template-columns:minmax(0,104px) minmax(0,1fr) 40px}}
-.calbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;font-size:12.5px;padding:7px 11px;border-radius:20px}
+.calbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;font-size:13px;padding:10px 15px;border-radius:22px}
+.calbtn.alt{border-color:transparent;background:var(--line-2);color:var(--royal)}
 .gedit{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:8px}
 .gin{width:100%;min-width:0;padding:10px 11px;border:1.5px solid var(--line);border-radius:10px;font:inherit;font-size:14px;background:var(--card);color:var(--ink)}
 .gin.gsede{grid-column:1/-1}
 .calsel{position:relative;display:flex;align-items:center;gap:10px;cursor:pointer}
 .calsel .calcard{flex:1;min-width:0;pointer-events:none}
 .calchk{flex:0 0 24px;width:24px;height:24px;border-radius:7px;border:2px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#fff;background:var(--card)}
-.calsel.on .calchk{background:var(--navy);border-color:var(--navy)}
-.calsel.on .calcard{outline:2px solid var(--navy);outline-offset:2px;border-radius:16px}
+.calsel.on .calchk{background:var(--royal);border-color:var(--royal)}
+.calsel.on .calcard{outline:2.5px solid var(--royal);outline-offset:2px;border-radius:16px}
+:root[data-theme="dark"] .calsel.on .calchk{background:var(--gold);border-color:var(--gold);color:#231a00}
+:root[data-theme="dark"] .calsel.on .calcard{outline-color:var(--gold)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .calsel.on .calchk{background:var(--gold);border-color:var(--gold);color:#231a00}:root:not([data-theme="light"]) .calsel.on .calcard{outline-color:var(--gold)}}
 .calbar{position:fixed;left:0;right:0;bottom:calc(var(--tab) + var(--navb) + 8px);z-index:60;padding:0 12px}
-.calbar-in{max-width:620px;margin:0 auto;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh-lg);padding:10px 12px}
+.calbar-in{max-width:620px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh-lg);padding:10px 12px}
 html.ws .calbar{bottom:20px}
 .calrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.calrow .btn{width:auto;flex:1 1 0;min-width:0;padding:11px 8px;font-size:13.5px;white-space:nowrap}
+.calrow .btn{width:auto;flex:1 1 0;min-width:0;min-height:46px;padding:12px 8px;font-size:13.5px;white-space:nowrap}
+.calbar-in .btn{min-height:44px}
+.calbar-tx{flex:1 1 150px;font-size:13px;line-height:1.35}
+.calbar-bt{display:flex;gap:8px;flex:0 0 auto;margin-left:auto}
+.calayuda{font-size:12px;color:var(--muted);margin:5px 2px 0;line-height:1.45;text-align:justify}
+.segw{flex-wrap:wrap}
+.segw button{flex:1 1 30%}
+.genmid{text-align:center;padding:4px 0 2px}
+.genmid .gcat{font-size:20px;font-weight:800;line-height:1.2}
+.genmid .sc{font-size:30px;font-weight:900;margin-top:10px;line-height:1}
+.genmid .st{font-size:10.5px;color:rgba(255,255,255,.7);margin-top:6px;font-weight:700}
 .calopt{display:inline-flex!important;align-items:center;justify-content:center;gap:8px}
 .calopt svg{flex:0 0 18px}
 .calfull{width:100%!important}
@@ -913,7 +927,7 @@ function pintaNav(){
   n.innerHTML=NAV.map(function(x){return '<button onclick="goGlobal(\''+x[0]+'\')" '+(x[0]===act&&!(_pn&&_ep)?'aria-current="page"':'')+'>'+sv(IC[x[0]])+x[1]+'</button>';}).join('')+
     (_pn?'<button class="navPanel" onclick="S.hist=[];ir(\'deportes\',{seg:\'result\'},true)" '+(_ep?'aria-current="page"':'')+'><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5h6v2.5H9zM8.5 11h7M8.5 15h5"/></svg>Panel de Deportes</button>':'');
 }
-function goGlobal(v){ if(v==='inicio'||v==='torneos'||v==='calendario'||v==='novedades'||v==='mas'){S.hist=[];S.torneo=(v==='inicio'||v==='torneos'||v==='calendario'||v==='novedades')?null:S.torneo;} ir(v,{},true);}
+function goGlobal(v){ window.__calSel=null; if(v==='inicio'||v==='torneos'||v==='calendario'||v==='novedades'||v==='mas'){S.hist=[];S.torneo=(v==='inicio'||v==='torneos'||v==='calendario'||v==='novedades')?null:S.torneo;} ir(v,{},true);}
 
 function registradoEn(id){if(gtcAuth.esAdmin())return true;var s=gtcAuth.cargar();return !!(s&&s.torneos&&s.torneos.indexOf(id)>=0);}
 function abrirTorneo(id){S.torneo=id;S.hist=[];if(id==='olimpiadas2025'){ir('hist2025',{},true);return;}var t=TOR[id];ir('torneo',{tab:t.tabs[0][0]},true);}
@@ -959,7 +973,7 @@ function eventRow(p){ /* partido tipo 'gen' (natación/atletismo) sin enfrentami
 }
 function kpirow(arr){return '<div class="kpis" style="--n:'+arr.length+'">'+arr.map(function(k){
   return '<div class="kpi"><b>'+k[1]+'</b><span>'+esc(k[0])+'</span></div>';}).join('')+'</div>';}
-function backBar(txt,onclick){return '<div class="wrap" style="padding-top:12px"><button onclick="'+(onclick||'atras()')+'" style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:7px 13px;box-shadow:var(--sh-sm)"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2"><path d="M15 5l-7 7 7 7"/></svg>'+esc(txt||'Volver')+'</button></div>';}
+function backBar(txt,onclick){return '<div class="wrap" style="padding-top:12px"><button onclick="'+(onclick||'atras()')+'" style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:22px;padding:11px 16px 11px 13px;min-height:44px;box-shadow:var(--sh-sm)"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2"><path d="M15 5l-7 7 7 7"/></svg>'+esc(txt||'Volver')+'</button></div>';}
 function pie(){return '<div class="foot">'+
   '<div class="ftrow">'+
     '<img class="ftGtc ftN" src="'+CRESTN+'" alt="Guayaquil Tenis Club">'+
@@ -1170,7 +1184,7 @@ function oResumen(t){
     var n=DATA.partidos.filter(function(p){return p.d===d.id;}).length;
     return '<button class="kpi" onclick="ir(\'disciplina\',{id:\''+d.id+'\'})">'+
       '<span class="ic" style="width:40px;height:40px;margin:0 auto 8px;background:'+d.c+'">'+svd(d.id)+'</span>'+
-      '<b style="font-size:13px">'+esc(d.n)+'</b><span>'+n+' partidos</span></button>';
+      '<b style="font-size:13px">'+esc(d.n)+'</b><span>'+n+(/^(natacion|carrera)$/.test(d.id)?(n===1?' fecha':' fechas'):' partidos')+'</span></button>';
   }).join('')+'</div>';
   if(typeof golOlimpiadasHTML==='function'){ var gh=golOlimpiadasHTML(6); if(gh){ h+=secHead('Goleadores · Fútbol'); h+=gh; } }
   return h;
@@ -1548,7 +1562,7 @@ function oDisciplinas(t){
     var n=DATA.partidos.filter(function(p){return p.d===d.id;}).length;
     return '<button class="tc mini" style="padding:13px" onclick="ir(\'disciplina\',{id:\''+d.id+'\'})">'+
       '<span class="ic" style="width:46px;height:46px;border-radius:13px;background:'+d.c+'">'+svd(d.id)+'</span>'+
-      '<div style="flex:1;min-width:0"><h4 style="font-size:14px">'+esc(d.n)+'</h4><p>'+n+' partidos</p></div></button>';
+      '<div style="flex:1;min-width:0"><h4 style="font-size:14px">'+esc(d.n)+'</h4><p>'+n+(/^(natacion|carrera)$/.test(d.id)?(n===1?' fecha':' fechas'):' partidos')+'</p></div></button>';
   }).join('')+'</div>';
 }
 
@@ -1637,7 +1651,9 @@ function vPartido(){
   if(!p)return '<div class="wrap">'+empty('Partido no encontrado','')+'</div>';
   p=liveState(p);
   var col=discColor(p.disc),dnom=(DIS[p.disc]&&DIS[p.disc].n)||'Fútbol';
-  var faseTxt=(p.tor==='mundialito44'?(p.label||p.fase):(p.fase==='grupos'?'Fase de grupos':p.fase));
+  var faseTxt=(p.tor==='mundialito44'?(p.label||p.fase):(p.fase==='grupos'?'Fase de grupos':String(p.fase||'').charAt(0).toUpperCase()+String(p.fase||'').slice(1)));
+  var catTxt=p.cat?((CAT[p.cat]&&CAT[p.cat].n)||p.cat):(p.gen?'Todas las categorías':'');
+  var genPas=p.gen&&p.f&&p.f<hoyISO(), genRes=p.gen&&(DATA.pruebas||[]).some(function(r){return r.disciplina===p.disc&&(!p.cat||r.cat===p.cat);});
   var isMun=p.tor==='mundialito44';
   var homeB=isMun?flag(p.home.flag,56):(p.home.eq?badge(p.home.eq,56):'');
   var awayB=isMun?flag(p.away.flag,56):(p.away.eq?badge(p.away.eq,56):'');
@@ -1645,11 +1661,12 @@ function vPartido(){
   if(p.gl!=null)mid='<div class="sc">'+p.gl+' - '+p.gv+'</div><div class="st">Finalizado</div>';
   else if(p.estado==='live')mid='<div class="sc" style="font-size:24px">EN VIVO</div><div class="st">'+(p.min?p.min+"' en juego":'En juego')+'</div>';
   else mid='<div class="sc" style="font-size:30px">'+esc(p.h)+'</div><div class="st">'+esc(fCorta(p.f))+' · Por jugar</div>';
+  if(p.gen) mid='<div class="gcat">'+esc(catTxt)+'</div><div class="sc">'+esc(p.h||'')+'</div><div class="st">'+esc(fCorta(p.f))+' · '+(genPas?(genRes?'Resultados registrados':'Pendiente de resultados'):'Por competir')+'</div>';
   var clickable=!isMun && ((p.home.id&&EQ[p.home.id])||(p.away.id&&EQ[p.away.id]));
   var h='<div class="wrap" style="padding-top:14px">';
   h+='<div class="sb"><div class="h"><span class="disc" style="background:'+col+'">'+svd(p.disc)+'</span>'+esc(dnom)+' · '+esc(faseTxt)+'</div>'+
-    '<div class="grid">'+sbSide(p,'home',homeB)+
-    '<div class="mid">'+mid+'</div>'+sbSide(p,'away',awayB)+'</div>'+
+    (p.gen?'<div class="genmid">'+mid+'</div>':'<div class="grid">'+sbSide(p,'home',homeB)+
+    '<div class="mid">'+mid+'</div>'+sbSide(p,'away',awayB)+'</div>')+
     (clickable?'<div class="tocpl">Toca un equipo para ver su nómina</div>':'')+
     '<div class="loc">'+sv(IC.pin).replace('class="i"','style="width:12px;height:12px;stroke:rgba(255,255,255,.6);fill:none;stroke-width:2;display:inline;vertical-align:-1px"')+' '+esc(p.sede||'')+' · Guayaquil Tenis Club</div></div>';
   /* datos disponibles */
@@ -1657,7 +1674,7 @@ function vPartido(){
   h+='<div class="row-list">'+
      liDato('Torneo',TOR[p.tor].n)+
      liDato('Disciplina',dnom)+
-     (p.cat?liDato('Categoría',(CAT[p.cat]&&CAT[p.cat].n)||p.cat):'')+
+     (catTxt?liDato('Categoría',catTxt):'')+
      liDato('Fase',faseTxt)+
      liDato('Fecha',fLarga(p.f)+' · '+p.h)+
      liDato('Escenario',p.sede||'—')+'</div>';
@@ -1666,6 +1683,7 @@ function vPartido(){
   var ev=(typeof partidoEventos==='function')?partidoEventos(p):'';
   if(ev) h+=ev;
   else if(pla){}
+  else if(p.gen) h+='<div class="nota" style="margin-top:12px">'+(genRes?'Los puestos ya están registrados: míralos en los resultados del torneo.':'Los puestos de cada prueba se publicarán en los resultados del torneo cuando la Comisión de Deportes los registre.')+'</div>';
   else h+='<div class="nota" style="margin-top:12px">Las alineaciones, estadísticas y el minuto a minuto se mostrarán aquí cuando la Comisión de Deportes registre esos datos del partido.</div>';
   h+='</div>'+pie();
   return __bb+h;
@@ -1851,7 +1869,7 @@ function vDisciplina(){
   var parts=DATA.partidos.map(pOli).filter(function(p){return p.disc===d.id;});
   var h='<div class="wrap" style="padding-top:16px">';
   h+='<div style="display:flex;align-items:center;gap:14px;margin-bottom:8px"><span class="ic" style="width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:'+d.c+'">'+svd(d.id)+'</span>'+
-    '<div><h1 class="page" style="font-size:24px">'+esc(d.n)+'</h1><p class="page-sub">'+parts.length+' partidos · '+d.cats.length+' categorías</p></div></div>';
+    '<div><h1 class="page" style="font-size:24px">'+esc(d.n)+'</h1><p class="page-sub">'+parts.length+(/^(natacion|carrera)$/.test(d.id)?(parts.length===1?' fecha':' fechas'):' partidos')+' · '+d.cats.length+' categorías</p></div></div>';
   h+='<div class="seg" style="margin:14px 0">'+[['reglas','Reglas'],['pos','Posiciones'],['cal','Calendario']].map(function(s){
     return '<button class="'+(seg===s[0]?'on':'')+'" onclick="ir(\'disciplina\',{id:\''+d.id+'\',seg:\''+s[0]+'\'},true)">'+s[1]+'</button>';}).join('')+'</div>';
   if(seg==='reglas'){
@@ -1898,7 +1916,7 @@ function vCalendario(){
     var msgCal=canVerCurso()
       ? 'Aún no hay partidos programados para los torneos en curso.'
       : 'Inicia sesión con tu cuenta del Club para ver el calendario de los torneos en curso.';
-    return h+empty('Calendario no disponible',msgCal)+'</div>'+pie();
+    return h+empty('Calendario no disponible',msgCal)+(canVerCurso()?'':'<div style="margin-top:6px">'+loginCta('Inicia sesión para ver el calendario')+'</div>')+'</div>'+pie();
   }
   var fsel=S.params.fs || (fechas.indexOf(hoy)>=0?hoy:fechas.find(function(f){return f>=hoy;})||fechas[0]);
   /* date strip cercano a fsel */
@@ -1910,7 +1928,7 @@ function vCalendario(){
   dia.sort(function(a,b){return(a.h||'').localeCompare(b.h||'');});
   var sel=window.__calSel; /* null = modo normal; objeto {id:1} = eligiendo partidos */
   h+='<div style="display:flex;align-items:center;gap:10px;margin:16px 0 9px"><div style="font-weight:800;font-size:14px;flex:1">'+esc(fLarga(fsel))+'</div>'+
-    (sel?'<button class="lnk" style="font-size:12.5px;font-weight:700;color:var(--royal)" onclick="calSelDia(\''+fsel+'\')">Elegir todo el día</button>':
+    (sel?'<button class="calbtn alt" onclick="calSelDia(\''+fsel+'\')">Elegir todo el día</button>':
     '<button class="calbtn" onclick="window.__calSel={};render()">+ Agregar a mi calendario</button>')+'</div>';
   h+= dia.length? dia.map(function(p){var card=p.gen?eventRow(p):matchCard(p);
       if(!sel)return card;
@@ -1918,9 +1936,9 @@ function vCalendario(){
       return '<div class="calsel'+(on?' on':'')+'" onclick="calSelToggle(\''+p.id+'\')"><span class="calchk">'+(on?'✓':'')+'</span><div class="calcard">'+card+'</div></div>';}).join('') : empty('Sin partidos este día','Elige otra fecha en la barra superior.');
   h+='</div>'+pie();
   if(sel){var n=Object.keys(sel).length;
-    h+='<div class="calbar"><div class="calbar-in"><div style="flex:1;font-size:13px;line-height:1.35"><b>'+n+' '+(n===1?'partido elegido':'partidos elegidos')+'</b><br><span style="color:var(--muted)">Puedes elegir en varios días</span></div>'+
-      '<button class="btn line" style="width:auto;padding:10px 14px" onclick="window.__calSel=null;render()">Cancelar</button>'+
-      '<button class="btn" style="width:auto;padding:10px 16px"'+(n?'':' disabled')+' onclick="calExportar()">Agregar</button></div></div>';
+    h+='<div class="calbar"><div class="calbar-in"><div class="calbar-tx"><b>'+n+' '+(n===1?'partido elegido':'partidos elegidos')+'</b><br><span style="color:var(--muted)">Puedes elegir en varios días</span></div>'+
+      '<div class="calbar-bt"><button class="btn line" style="width:auto;padding:10px 16px" onclick="window.__calSel=null;render()">Cancelar</button>'+
+      '<button class="btn" style="width:auto;padding:10px 18px"'+(n?'':' disabled')+' onclick="calExportar()">Agregar</button></div></div></div>';
     return h;}
   /* botón flotante hoy */
   h+='<button onclick="ir(\'calendario\',{fs:\''+hoy+'\'},true)" style="position:fixed;right:16px;bottom:calc(var(--tab) + var(--navb) + 14px);z-index:40;background:var(--gold);color:#231a00;font-weight:800;border-radius:26px;padding:11px 18px;box-shadow:var(--sh-lg);display:flex;align-items:center;gap:7px;font-size:13px">'+sv(IC.calendario).replace('class="i"','style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2"')+'Hoy</button>';
@@ -2740,7 +2758,8 @@ function adminPost(payload){
 
 /* ---------------- ANALÍTICA ---------------- */
 var GTC_SID=(function(){try{var k=localStorage.getItem('gtc_sid');if(!k){k='s'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('gtc_sid',k);}return k;}catch(e){return 's'+Date.now();}})();
-function plataforma(){var ua=navigator.userAgent||'';if(/android/i.test(ua))return 'android';if(/iphone|ipad|ipod/i.test(ua))return 'ios';return 'web';}
+function plataforma(){try{var C=window.Capacitor;if(C&&C.isNativePlatform&&C.isNativePlatform()){var g=C.getPlatform();if(g==='ios'||g==='android')return g;}}catch(e){}var ua=navigator.userAgent||'';if(/android/i.test(ua))return 'android';if(/iphone|ipad|ipod/i.test(ua))return 'ios';return 'web';}
+function esIpad(){var ua=navigator.userAgent||'';return /ipad/i.test(ua)||(/macintosh/i.test(ua)&&navigator.maxTouchPoints>1);}
 function isStandalone(){try{return (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;}catch(e){return false;}}
 function track(tipo,extra){
   try{
@@ -3092,7 +3111,7 @@ function vDeportes(){
   if(!gtcAuth.puedeEditar())return backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Sin acceso</h1><p class="page-sub">El panel de Deportes es para Deportes y el superadministrador.</p></div>'+pie();
   var seg=S.params.seg||'result';
   var h=backBar('Más',"goGlobal('mas')")+'<div class="wrap" style="padding-top:14px"><h1 class="page">Panel de Deportes</h1>';
-  h+='<div class="seg" style="margin:14px 0">'+[['result','Resultados'],['pruebas','Natación y Carrera'],['crear','Crear partido'],['jug','Equipos'],['camp','Campeonatos']].map(function(x){
+  h+='<div class="seg segw" style="margin:14px 0">'+[['result','Resultados'],['pruebas','Natación y Carrera'],['crear','Crear partido'],['jug','Equipos'],['camp','Campeonatos']].map(function(x){
     return '<button class="'+(seg===x[0]?'on':'')+'" onclick="ir(\'deportes\',{seg:\''+x[0]+'\'},true)">'+x[1]+'</button>';}).join('')+'<button onclick="ir(\'avisos\',{})">Enviar aviso</button></div>';
   h+= seg==='jug'? depJugadores() : seg==='crear'? depCrear() : seg==='camp'? depCampeonatos() : seg==='pruebas'? depPruebas() : depResultados();
   h+='</div>'+pie();
@@ -3924,13 +3943,14 @@ var CAL_IC={
 /* Opciones según el teléfono: en Android no se ofrece iPhone; en iPhone y en la computadora, las tres */
 function calOpciones(){var pl=plataforma();return pl==='android'?['google','outlook']:['google','iphone','outlook'];}
 var CAL_TXT={google:'Google Calendar',iphone:'iPhone',outlook:'Outlook'};
+if(esIpad())CAL_TXT.iphone='iPad';
 function calBtn(dest,onclick,pri,corto){return '<button class="btn'+(pri?'':' line')+' calopt" onclick="'+onclick+'">'+CAL_IC[dest]+'<span>'+(corto&&dest==='google'?'Google':CAL_TXT[dest])+'</span></button>';}
 function calBotonesHTML(p){
   var g=calGoogleUrl(p); window.__calP=p;
   var ops=calOpciones().filter(function(d){return d!=='google'||g;});
   return secHead('Agregar a mi calendario')+'<div class="calrow">'+ops.map(function(d,i){
     return calBtn(d,d==='google'?'abrirExterno(calGoogleUrl(window.__calP))':'abrirExterno(calIcsUrl(\''+p.id+'\'))',i===0,true);}).join('')+'</div>'+
-    '<div class="nota" style="margin-top:8px">Se agrega con la fecha, la hora y la cancha, y te recuerda una hora antes. Para varios partidos a la vez, usa <b>Calendario → Agregar a mi calendario</b>.</div>';
+    '<div class="nota" style="margin-top:8px">Se agrega con la fecha, la hora y la cancha'+(function(){var o=calOpciones().filter(function(d){return d!=='google';}).map(function(d){return CAL_TXT[d];});return o.length?'; con '+o.join(' y ')+', además, te recuerda una hora antes':'';})()+'. Para varios partidos a la vez, usa <b>Calendario → Agregar a mi calendario</b>.</div>';
 }
 function calSelToggle(id){var s=window.__calSel||(window.__calSel={}); if(s[id])delete s[id]; else s[id]=1; render();}
 function calSelDia(f){var s=window.__calSel||(window.__calSel={});
@@ -3939,15 +3959,15 @@ function calExportar(){
   var ids=Object.keys(window.__calSel||{}); if(!ids.length)return;
   var prev=document.getElementById('ovCal'); if(prev)prev.remove();
   var ov=document.createElement('div'); ov.id='ovCal';
-  ov.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(6,8,24,.7);display:flex;align-items:flex-end;justify-content:center;padding:16px';
+  ov.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(6,8,24,.7);display:flex;align-items:flex-end;justify-content:center;padding:calc(var(--sat) + 12px) 16px 16px;overflow-y:auto';
   window.__calIds=ids;
-  var ayuda={google:'Se descarga el calendario: en Android se abre con Google Calendar; en la computadora, impórtalo en Google Calendar → Configuración → Importar.',
+  var ayuda={google:'Se descarga un archivo de calendario: ábrelo con la app de calendario del teléfono; en la computadora, impórtalo en Google Calendar → Configuración → Importar.',
     iphone:'Se abre el calendario y tocas «Agregar todos».', outlook:'Se descarga el calendario y Outlook lo agrega.'};
   ov.innerHTML='<div class="card" style="max-width:440px;width:100%;padding:18px 18px 14px;margin-bottom:calc(var(--navb) + 8px)">'+
     '<div style="font-weight:800;font-size:17px;margin-bottom:4px">Agregar '+ids.length+' '+(ids.length===1?'partido':'partidos')+' a tu calendario</div>'+
-    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">Cada partido te recuerda una hora antes.</div>'+
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">Cada partido se agrega con la fecha, la hora y la cancha.</div>'+
     calOpciones().map(function(d,i){return '<div style="margin-bottom:10px">'+calBtn(d,'calExportarA(\''+d+'\')',i===0).replace('calopt','calopt calfull')+
-      '<div style="font-size:11.5px;color:var(--muted-2);margin:4px 2px 0;text-align:justify">'+ayuda[d]+'</div></div>';}).join('')+
+      '<div class="calayuda">'+ayuda[d]+'</div></div>';}).join('')+
     '<button class="btn line" style="margin-top:4px" onclick="document.getElementById(\'ovCal\').remove()">Cancelar</button></div>';
   ov.onclick=function(e){if(e.target===ov)ov.remove();};
   document.body.appendChild(ov);
