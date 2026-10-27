@@ -1,5 +1,5 @@
 // GTC Sports service worker v10 — network-first para HTML, cache-first para logos/estáticos
-const CACHE='gtc-v52';
+const CACHE='gtc-v53';
 const IMG='gtc-img-v2';
 const CORE=['/','/index.html','/manifest.webmanifest','/icon-192.png','/icon-512.png','/supabase.min.js'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE).catch(()=>{})));});
@@ -16,8 +16,8 @@ self.addEventListener('fetch',e=>{
     })));
     return;
   }
-  // API de Supabase (datos) -> siempre red, sin cache
-  if(url.pathname.startsWith('/api/')||url.hostname.indexOf('supabase')>=0)return;
+  // API de Supabase (datos) y módulo de torneos de Deportes -> siempre red, sin cache
+  if(url.pathname.startsWith('/api/')||url.pathname.startsWith('/tp/')||url.pathname==='/torneos'||url.pathname==='/torneos.html'||url.hostname.indexOf('supabase')>=0)return;
   // Documento -> network-first con fallback a cache
   if(req.mode==='navigate'||req.destination==='document'){
     e.respondWith(fetch(req).then(r=>{const cp=r.clone();caches.open(CACHE).then(c=>c.put('/',cp)).catch(()=>{});return r;}).catch(()=>caches.match('/').then(m=>m||caches.match('/index.html'))));

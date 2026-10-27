@@ -2004,6 +2004,7 @@ function vMas(){
     h+=secHead('Administración');
     h+='<div class="row-list">'+
       (gtcAuth.puedeEditar()?liNav('tabla','Panel de Deportes','Resultados, goles, tarjetas, equipos y jugadores',"ir('deportes',{})"):'')+
+      (gtcAuth.puedeEditar()&&!esNativo()?liNav('grid','Torneos','Pádel, tenis, beach tenis, ping pong y pickleball (como Tournament Planner)',"location.href='/torneos'"):'')+
       (gtcAuth.puedeAvisar()?liNav('bell','Enviar aviso','Anuncios a todos, a una categoría o a un equipo',"ir('avisos',{})"):'')+
       liNav('bell','Analítica de uso','Quién ingresa, qué visitan e instalaciones',"ir('analitica',{})")+
       (gtcAuth.puedeVerContactos()?liNav('correo','Contactos de socios','Correos y WhatsApp para comunicaciones',"ir('contactos',{})"):'')+

@@ -24,9 +24,11 @@
 //   aviso_contar     {token, alcance, ...}                 -> {telefonos, correos} (sin enviar)
 //   aviso_prueba     {token, titulo, mensaje}              -> correo de prueba solo a quien envía
 //   avisos_list      {token}                               -> últimos avisos enviados (push + correo)
+//   tp_*             módulo de torneos (réplica de Tournament Planner): ver lib/tp-api.js
 // resultado y partido_edit avisan solos a los dos equipos (push + correo) salvo avisar:false.
 import crypto from 'node:crypto';
 import { avisar, avisoResultado, avisoCambio, destinatarios, enviarCorreos } from '../lib/avisos.js';
+import { tpAdmin, tpPublicas } from '../lib/tp-api.js';
 
 const URL = process.env.SUPABASE_URL || 'https://zwuieoenhwychdbzrsif.supabase.co';
 const KEY = process.env.SUPABASE_SECRET_KEY;
@@ -284,11 +286,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    // ---- MÓDULO DE TORNEOS: vistas públicas para la app de socios ----
+    if (accion === 'tp_publicos' || accion === 'tp_publico') return tpPublicas(accion, body, res, { sb, authUser });
+
     // resto de acciones requieren token
     const sess = readToken(body.token);
     if (!sess) return res.status(401).json({ ok: false, msg: 'Sesión expirada. Vuelve a entrar.' });
     const puedeEscribir = ROLES_WRITE.indexOf(sess.r) >= 0;
     const puedeLeer = ROLES_READ.indexOf(sess.r) >= 0;
+
+    // ---- MÓDULO DE TORNEOS (Deportes): ver lib/tp-api.js ----
+    if (String(accion || '').startsWith('tp_')) return tpAdmin(accion, body, res, { sb, sess, puedeLeer, puedeEscribir });
 
     // ---- ANALÍTICA (lectura) ----
     if (accion === 'analitica') {
