@@ -82,6 +82,47 @@ assert.equal(M.evaluarMarcador({ bestOf: 3, tipo: 'normal', ultimo: 'normal' }, 
   assert.equal(M.resolver(T).cuadros[A.id].tabla.filas[1].id, 'i1');
 }
 
+// 3b) Revisión: ajuste manual viejo se borra al resortear; ITF con 2 empatados usa el partido entre ellos; 3 grupos → byes para los mejores 1.º
+{
+  const T = T0(); const ev = M.nuevoEvento(T, { nombre: 'G3', genero: 'F' }); T.eventos.push(ev);
+  for (let n = 1; n <= 9; n++) addJ(T, ev, n);
+  const gs = M.crearCuadros(T, { evento: ev.id, tipo: 'gruposElim', grupos: 3, tamGrupo: 3, pasan: 2 });
+  const po = gs.find(c => c.nombre.includes('Playoff'));
+  assert.equal(po.tam, 8);
+  const grupos = gs.filter(c => c !== po);
+  grupos.forEach((g, k) => { g.lineas = [1, 2, 3].map(x => 'i' + (k * 3 + x)); });
+  T.ajustes[grupos[0].id] = ['i1', 'i2', 'i3'];
+  M.borrarResultadosDe(T, [grupos[0].id]);
+  assert.equal(T.ajustes[grupos[0].id], undefined, 'el orden manual se borra con los resultados');
+  // todos los grupos: el 1.º de la lista gana todo
+  grupos.forEach(g => { [[0, 1], [0, 2], [1, 2]].forEach(([x, y]) => assert.ok(M.guardarResultado(T, g.id + ':g:' + x + ':' + y, { sets: [[6, 2], [6, 2]] }).ok)); });
+  const L = M.resolver(T).cuadros[po.id].lineas;
+  assert.equal(L.filter(x => x === 'BYE').length, 2, 'dos byes');
+  assert.equal(L[1], 'BYE'); assert.equal(L[6], 'BYE');
+  for (let l = 0; l < 8; l += 2) assert.ok(!(L[l] === 'BYE' && L[l + 1] === 'BYE'), 'ningún partido BYE contra BYE');
+  // ITF: A, B, C con 2 ganados; A se separa por sets; B le ganó a C → B antes que C aunque C tenga mejor % de games
+  const T2 = T0(); T2.rr.modo = 'itf'; const ev2 = M.nuevoEvento(T2, { nombre: 'ITF', genero: 'F' }); T2.eventos.push(ev2);
+  [1, 2, 3, 4].forEach(n => addJ(T2, ev2, n));
+  const [g] = M.crearCuadros(T2, { evento: ev2.id, tipo: 'gruposElim', grupos: 1, tamGrupo: 4, pasan: 1 });
+  g.lineas = ['i1', 'i2', 'i3', 'i4'];
+  const r = (x, y, sets) => assert.ok(M.guardarResultado(T2, g.id + ':g:' + x + ':' + y, { sets }).ok);
+  // A 4-2 en sets; B y C 4-3 cada uno; C mejor % de games (28/54 vs 25/49), pero B le ganó a C
+  r(0, 1, [[6, 0], [6, 0]]);            // A gana a B
+  r(0, 2, [[0, 6], [0, 6]]);            // C gana a A
+  r(0, 3, [[6, 0], [6, 0]]);            // A gana a D
+  r(1, 2, [[6, 0], [6, 0]]);            // B gana a C
+  r(1, 3, [[6, 0], [0, 6], [7, 6]]);    // B gana a D
+  r(2, 3, [[6, 4], [4, 6], [6, 4]]);    // C gana a D
+  const orden = M.resolver(T2).cuadros[g.id].tabla.filas.map(f => f.id);
+  assert.deepEqual(orden.slice(1, 3), ['i2', 'i3'], 'B antes que C por el partido entre ellos');
+}
+// 3c) Revisión: menor sin fecha de nacimiento en categoría infantil no sale con nombre público
+{
+  const T = T0(); const ev = M.nuevoEvento(T, { nombre: 'Sub 12', genero: 'G', edadMax: 12 }); T.eventos.push(ev);
+  addJ(T, ev, 1, { nac: '' });
+  assert.equal(M.publico(T).jugadores.j1.m, true);
+}
+
 // 4) Programación automática: semifinal 11:30 + 150 min -> final 14:00 (verificado en TP)
 {
   const T = T0(); const ev = M.nuevoEvento(T, { nombre: 'Damas A', genero: 'F' }); T.eventos.push(ev);

@@ -1,6 +1,6 @@
 // Módulo de torneos de Deportes (réplica de Tournament Planner) — arranque, sesión, lista de torneos y menú.
-import { h, limpiar, modal, toast, confirmar, fCorta, campo, diasEntre } from './ui.js';
-import { S, api, alRender, render, guardar, puedeEscribir, pintarEstado } from './estado.js';
+import { h, limpiar, modal, toast, confirmar, fCorta, campo, diasEntre, descargar } from './ui.js';
+import { S, api, alRender, render, guardar, guardarPendiente, cambio, puedeEscribir, pintarEstado } from './estado.js';
 import * as M from './motor.js';
 import { vistaResumen } from './resumen.js';
 import { abrirPropiedades } from './props.js';
@@ -30,7 +30,7 @@ function pantallaLogin() {
     if (!r.ok) { err.append(h('div', { class: 'error' }, r.msg || 'No se pudo entrar.')); return; }
     Object.assign(S, { token: r.token, nombre: r.nombre, rol: r.rol, correo: r.correo });
     sessionStorage.setItem('gtc_tp', JSON.stringify({ token: r.token, nombre: r.nombre, rol: r.rol, correo: r.correo }));
-    cargarLista();
+    if (S.T) { render(); if (S.sucio) guardar(); } else cargarLista(); // la sesión venció con un torneo abierto: seguir donde estaba
   };
   return h('form', { class: 'login', onsubmit: enviar },
     h('h1', null, 'Torneos'), h('p', { class: 'sub' }, 'GTC Sports · Deportes'),
@@ -121,12 +121,23 @@ function copiarPropiedades(T, O, c) {
   if (c.opc) { T.opc = { ...T.opc, ...(O.opc || {}) }; T.prog = { ...T.prog, ...(O.prog || {}) }; }
 }
 
-export async function abrir(id) {
+export async function abrir(id, mismaVista) {
+  if (S.T && S.id !== id && !(await guardarPendiente()) && !(await confirmar('Hay cambios sin guardar en el torneo abierto. ¿Salir igual y perderlos?', 'Salir sin guardar'))) return;
   const r = await api('tp_get', { id });
   if (!r.ok) return toast(r.msg || 'No se pudo abrir el torneo.', 'error');
-  S.T = migrar(r.data); S.id = r.id; S.rev = r.rev; S.vista = 'resumen'; S.conflicto = false; S.sucio = false; S.ultimoGuardado = null; S._R = null;
-  S.evento = S.T.eventos[0] && S.T.eventos[0].id; S.cuadro = null;
+  S.T = migrar(r.data); S.id = r.id; S.rev = r.rev; S.conflicto = false; S.sucio = false; S.ultimoGuardado = null; S._R = null; S._base = JSON.stringify(S.T.res);
+  if (!mismaVista) { S.vista = 'resumen'; S.evento = S.T.eventos[0] && S.T.eventos[0].id; S.cuadro = null; }
   render();
+}
+// Conflicto: otra computadora guardó antes. Se recarga su versión y se vuelven a aplicar encima
+// los resultados y horarios cambiados en esta computadora; lo demás queda en la copia descargable.
+async function recargarConflicto() {
+  const local = S.T, base = JSON.parse(S._base || '{}'), igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const cambiados = Object.keys(local.res).filter(k => !igual(local.res[k], base[k])), borrados = Object.keys(base).filter(k => !(k in local.res));
+  await abrir(S.id, true);
+  if (S.T === local) return;
+  cambiados.forEach(k => { S.T.res[k] = local.res[k]; }); borrados.forEach(k => { delete S.T.res[k]; });
+  if (cambiados.length || borrados.length) { cambio(); toast((cambiados.length + borrados.length) + ' resultado(s) u horario(s) de esta computadora se aplicaron sobre la versión actual. Revisa otros cambios que hayas hecho (jugadores, cuadros).'); }
 }
 // Completa campos que un documento viejo no tenga.
 function migrar(T) { const base = M.nuevoTorneo({ deporte: T.info.deporte }); for (const k of Object.keys(base)) if (T[k] == null) T[k] = base[k]; T.prog = { ...base.prog, ...T.prog }; T.opc = { ...base.opc, ...T.opc }; return T; }
@@ -141,10 +152,11 @@ function pantallaTorneo() {
       h('div', { class: 'marca' }, 'GTC ', h('b', null, 'Torneos')),
       h('div', { class: 'tor' }, h('span', { class: 'n' }, T.info.nombre), h('span', { class: 'estado' }, M.DEPORTES[T.info.deporte] + ' · ' + fCorta(T.info.desde) + (T.info.hasta !== T.info.desde ? ' – ' + fCorta(T.info.hasta) : ''))),
       h('span', { class: 'guardado', id: 'estadoGuardado' }),
-      S.conflicto && h('button', { onclick: () => abrir(S.id) }, 'Recargar'),
+      S.conflicto && h('button', { onclick: recargarConflicto }, 'Recargar y aplicar mis resultados'),
+      S.conflicto && h('button', { onclick: () => descargar('copia-' + (S.id || 'torneo') + '.json', JSON.stringify(T), 'application/json') }, 'Descargar mi copia'),
       puedeEscribir() && h('button', { onclick: () => abrirPropiedades() }, 'Propiedades'),
       puedeEscribir() && h('button', { class: 'oro', onclick: () => abrirPublicar() }, T.publicado ? 'Publicado' : 'Publicar'),
-      h('button', { onclick: async () => { if (S.sucio) await guardar(); cargarLista(); } }, 'Torneos')),
+      h('button', { onclick: async () => { if (!(await guardarPendiente()) && !(await confirmar('Hay cambios sin guardar. ¿Salir igual y perderlos?', 'Salir sin guardar'))) return; cargarLista(); } }, 'Torneos')),
     h('nav', { class: 'nav' }, h('small', null, 'Torneo'), VISTAS.slice(0, 3).map(btn), h('div', { class: 'sep' }), h('small', null, 'Juego'), VISTAS.slice(3, 6).map(btn), h('div', { class: 'sep' }), h('small', null, 'Gestión'), VISTAS.slice(6).map(btn)),
     main);
   function btn(v) { return h('button', { class: S.vista === v[0] ? 'on' : '', onclick: () => { S.vista = v[0]; render(); } }, v[1]); }

@@ -1,6 +1,6 @@
 // Notas, Avisos (push + correo), Informes imprimibles / Excel y Publicar.
 import { h, limpiar, modal, confirmar, campo, toast, fCorta, fLarga, descargar, csv, esc } from './ui.js';
-import { S, api, cambio, render, guardar, R, puedeEscribir } from './estado.js';
+import { S, api, cambio, render, guardar, guardarPendiente, R, puedeEscribir } from './estado.js';
 import * as M from './motor.js';
 import { nomEntrada, canchaN, marcador, origenTxt } from './cuadros.js';
 import { registrarAviso } from './jugadores.js';
@@ -27,7 +27,7 @@ export function vistaAvisos() {
   const nHor = Rr.partidos.filter(p => p.listo && p.fecha && p.hora && !p.decidido && p.fecha >= hoy).length;
   const nRes = Rr.partidos.filter(p => p.decidido && (p.g || p.est)).length;
   const enviar = async (datos, titulo, ins) => {
-    if (S.sucio) await guardar();
+    await guardarPendiente();
     limpiar(res).append(h('p', { class: 'sub' }, 'Enviando…'));
     const r = await api('tp_aviso', { id: S.id, ...datos });
     limpiar(res).append(h('div', { class: r.ok ? 'ok-msg' : 'error' }, r.ok ? (r.avisos - r.repetidos) + ' avisos nuevos (' + r.repetidos + ' ya se habían enviado) · ' + r.push + ' push y ' + r.correos + ' correos.' + (r.error ? ' Aviso: ' + r.error : '') : (r.msg || 'No se pudo enviar.')));
@@ -53,7 +53,7 @@ export function abrirPublicar() {
     h('div', { class: 'grid2' }, campo(d, 'publicado', 'Publicado', { tipo: 'check' }), campo(d, 'estado', 'Estado', { opciones: { borrador: 'Borrador', curso: 'En curso (solo socios con sesión)', finalizado: 'Finalizado (público)' } })),
     h('h3', null, 'Cuadros visibles'), T.cuadros.length ? T.cuadros.map(c => h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: c.visible !== false, onchange: e => { c.visible = e.target.checked; } }), (T.eventos.find(e => e.id === c.evento) || {}).nombre + ' · ' + c.nombre)) : h('p', { class: 'sub' }, 'Todavía no hay cuadros.'),
     h('p', { class: 'sub j', style: { marginTop: '10px' } }, 'La pantalla de torneos para socios llega con la próxima versión de la app (iPhone y Android). Desde entonces, cada cambio que se guarde aquí se verá en la app sin nuevas versiones.'));
-  m.pie.append(h('button', { class: 'btn', onclick: () => m.cerrar() }, 'Cancelar'), h('button', { class: 'btn pri', onclick: async () => { T.publicado = d.publicado; T.estado = d.estado; cambio(); m.cerrar(); await guardar(); toast(T.publicado ? 'Publicado.' : 'El torneo quedó oculto en la app.'); } }, 'Guardar'));
+  m.pie.append(h('button', { class: 'btn', onclick: () => m.cerrar() }, 'Cancelar'), h('button', { class: 'btn pri', onclick: async () => { T.publicado = d.publicado; T.estado = d.estado; cambio(); m.cerrar(); if (!(await guardarPendiente())) return toast('No se pudo guardar el cambio de publicación.', 'error'); toast(T.publicado ? 'Publicado.' : 'El torneo quedó oculto en la app.'); } }, 'Guardar'));
 }
 
 // ---------- Informes ----------

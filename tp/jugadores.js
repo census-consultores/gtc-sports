@@ -1,6 +1,6 @@
 // Jugadores (Players) e Inscritos (Roster) del módulo de torneos.
 import { h, limpiar, modal, confirmar, campo, toast, fCorta, descargar, csv } from './ui.js';
-import { S, api, cambio, render, guardar, R, puedeEscribir } from './estado.js';
+import { S, api, cambio, render, guardarPendiente, R, puedeEscribir } from './estado.js';
 import * as M from './motor.js';
 import { matriz } from './props.js';
 
@@ -235,7 +235,7 @@ export function vistaInscritos() {
       h('tbody', null, filas.length ? filas.map((i, n) => {
         const js = [i.j1, i.j2].map(jug).filter(Boolean), j = js[0] || {};
         const avisos = js.flatMap(x => M.chequeoInscripcion(T, ev, x));
-        return h('tr', { class: i.estado === 'WD' ? '' : '' , style: i.estado === 'WD' ? { opacity: .55 } : null },
+        return h('tr', { style: i.estado === 'WD' ? { opacity: .55 } : null },
           h('td', null, lista === 'reserve' ? (i.orden || n + 1) : n + 1),
           h('td', null, M.nombreIns(T, i), i.busca && !i.j2 ? h('span', { class: 'chip oro', style: { marginLeft: '6px' } }, 'Busca pareja') : null, avisos.length ? h('span', { class: 'chip rojo', title: avisos.join(' '), style: { marginLeft: '6px' } }, '!') : null, enCuadro(i.id) ? h('span', { class: 'chip azul', style: { marginLeft: '6px' } }, 'En cuadro') : null),
           h('td', null, puedeEscribir() ? h('input', { value: (i.siembra || {})[etapa] || '', style: { width: '56px' }, placeholder: '—', title: 'Número o bloque: 1, 2, 3/4, 5/8…', onchange: e => { i.siembra = i.siembra || {}; const v = e.target.value.trim(); if (v) i.siembra[etapa] = v; else delete i.siembra[etapa]; cambio(); } }) : ((i.siembra || {})[etapa] || '')),
@@ -266,7 +266,7 @@ async function validarPago(i) {
   m.cuerpo.append(h('p', { class: 'j' }, 'Confirmas que ' + M.nombreIns(T, i) + ' pagó la inscripción. La participación queda activa y entra al sorteo.'), campo(d, 'avisar', 'Avisar al socio por push y correo', { tipo: 'check' }));
   m.pie.append(h('button', { class: 'btn', onclick: () => m.cerrar() }, 'Cancelar'), h('button', { class: 'btn pri', onclick: async () => {
     i.pago = 'pagada'; i.pagoFecha = new Date().toISOString(); i.pagoPor = S.correo; m.cerrar(); cambio();
-    if (d.avisar) { await guardar(); const r = await api('tp_aviso', { id: S.id, tipo: 'pago', ins: i.id }); registrarAviso('Inscripción confirmada', [i.id], r); toast(r.ok ? (r.repetido ? 'El aviso ya se había enviado.' : 'Aviso enviado: ' + r.push + ' push y ' + r.correos + ' correos.') : (r.msg || 'No se pudo enviar el aviso.'), r.ok ? null : 'error'); }
+    if (d.avisar) { if (!(await guardarPendiente())) return toast('No se envió el aviso: el pago todavía no se guarda.', 'error'); const r = await api('tp_aviso', { id: S.id, tipo: 'pago', ins: i.id }); registrarAviso('Inscripción confirmada', [i.id], r); toast(r.ok ? (r.repetido ? 'El aviso ya se había enviado.' : 'Aviso enviado: ' + r.push + ' push y ' + r.correos + ' correos.') : (r.msg || 'No se pudo enviar el aviso.'), r.ok ? null : 'error'); }
   } }, 'Validar pago'));
 }
 export function registrarAviso(titulo, insIds, r) {

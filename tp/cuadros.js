@@ -1,7 +1,7 @@
 // Cuadros (Draws): asistente, sorteo, dibujo de eliminación y round robin, enlaces, ajuste de posiciones,
 // ventana del partido (resultado) y planificación de un partido (F7).
 import { h, limpiar, modal, confirmar, campo, toast, fCorta } from './ui.js';
-import { S, api, cambio, render, guardar, R, puedeEscribir } from './estado.js';
+import { S, api, cambio, render, guardar, guardarPendiente, R, puedeEscribir } from './estado.js';
 import * as M from './motor.js';
 import { registrarAviso } from './jugadores.js';
 
@@ -125,7 +125,7 @@ function elegirLinea(c, l) {
   const T = S.T, m = modal({ titulo: c.nombre + ' · línea ' + (l + 1), clase: 'chico' });
   const usadas = new Set(T.cuadros.filter(x => x.evento === c.evento && x.etapa === c.etapa).flatMap(x => x.lineas));
   const libres = T.inscripciones.filter(i => i.evento === c.evento && M.inscripcionActiva(i) && !usadas.has(i.id));
-  const poner = v => { c.lineas[l] = v; M.borrarResultadosDe(T, []); cambio(); m.cerrar(); };
+  const poner = v => { c.lineas[l] = v;  cambio(); m.cerrar(); };
   m.cuerpo.append(h('p', { class: 'sub' }, 'Sorteo manual: elige quién va en esta línea. Solo aparecen inscripciones con pago validado que no están en otro cuadro de la etapa.'),
     h('div', { style: { maxHeight: '45vh', overflow: 'auto' } }, libres.map(i => h('button', { class: 'btn', style: { display: 'block', width: '100%', textAlign: 'left', marginBottom: '4px' }, onclick: () => poner(i.id) }, M.nombreIns(T, i) + siembraTxt(i.id, c)))));
   m.pie.append(c.lineas[l] && h('button', { class: 'btn', style: { marginRight: 'auto' }, onclick: () => poner(null) }, 'Vaciar línea'), h('button', { class: 'btn', onclick: () => poner('BYE') }, 'Bye'), h('button', { class: 'btn', onclick: () => m.cerrar() }, 'Cancelar'));
@@ -354,7 +354,7 @@ export function ventanaPartido(k) {
       M.setRes(T, k, { nota: d.nota || null, destacado: d.destacado || null });
       cambio(); m.cerrar();
       if (r.obsoletos && r.obsoletos.length) toast(r.obsoletos.length + ' partido(s) posteriores quedaron con su resultado anulado porque cambiaron sus participantes.', 'error');
-      if (d.avisar && S.id) { await guardar(); api('tp_aviso', { id: S.id, tipo: 'resultado', k }).then(x => { if (x.ok && !x.repetido) registrarAviso('Resultado ' + c.nombre, [p.a, p.b], x); }); }
+      if (d.avisar && S.id) { if (!(await guardarPendiente())) toast('No se envió el aviso: el resultado todavía no se guarda.', 'error'); else api('tp_aviso', { id: S.id, tipo: 'resultado', k }).then(x => { if (!x.ok) toast('No se envió el aviso: ' + (x.msg || 'error'), 'error'); else if (!x.repetido) registrarAviso('Resultado ' + c.nombre, [p.a, p.b], x); }); }
       // ¿siguiente partido sin programar?
       if (T.prog.avisarSig) {
         const R2 = R(); const ganador = R2.porClave[k] && R2.porClave[k].ganador;

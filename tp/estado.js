@@ -11,7 +11,9 @@ export const S = {
 };
 const API = '/api/gtc-admin';
 export async function api(accion, datos) {
-  const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, token: S.token, ...(datos || {}) }) });
+  let r;
+  try { r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, token: S.token, ...(datos || {}) }) }); }
+  catch (e) { return { ok: false, status: 0, msg: 'Sin conexión a internet' }; }
   let j = {}; try { j = await r.json(); } catch (e) { }
   if (r.status === 401 && accion !== 'login') { sessionStorage.removeItem('gtc_tp'); S.token = null; toast('Tu sesión expiró. Vuelve a entrar.', 'error'); render(); }
   return { status: r.status, ...j };
@@ -35,17 +37,33 @@ export function cambio(sinRender) {
   // espera 1,2 s a que terminen los cambios seguidos, pero nunca deja más de 4 s sin guardar
   clearTimeout(timer); timer = setTimeout(guardar, Date.now() - S._sucioDesde > 4000 ? 0 : 1200);
 }
-export async function guardar() {
-  if (!S.T || !puedeEscribir() || S.conflicto) return;
-  if (S.guardando) { clearTimeout(timer); timer = setTimeout(guardar, 800); return; }
-  S.guardando = true; S._cambioDurante = false; pintarEstado();
-  const r = await api('tp_save', { id: S.id, rev: S.rev, data: S.T });
-  S.guardando = false;
-  if (r.ok) { S.id = r.id; S.rev = r.rev; S.ultimoGuardado = new Date(); if (!S._cambioDurante) S.sucio = false; else { S._cambioDurante = false; S._sucioDesde = Date.now(); clearTimeout(timer); timer = setTimeout(guardar, 1200); } }
-  else if (r.conflicto) { S.conflicto = true; toast(r.msg, 'error'); }
-  else toast('No se pudo guardar: ' + (r.msg || r.error || 'error de conexión') + '. Se reintentará con el próximo cambio.', 'error');
-  pintarEstado();
-  return r;
+let enCurso = null;
+// Guarda el torneo abierto. Si ya hay un guardado viajando, espera a que termine (y guarda lo que cambió mientras tanto).
+export function guardar() {
+  if (!S.T || !puedeEscribir() || S.conflicto) return Promise.resolve({ ok: false });
+  if (enCurso) return enCurso.then(() => S.sucio && !S.conflicto ? guardar() : { ok: !S.sucio });
+  clearTimeout(timer);
+  const T = S.T;
+  enCurso = (async () => {
+    S.guardando = true; S._cambioDurante = false; pintarEstado();
+    let r;
+    try { r = await api('tp_save', { id: S.id, rev: S.rev, data: T }); }
+    finally { S.guardando = false; enCurso = null; }
+    if (S.T !== T) return r; // ya se abrió otro torneo: no tocar su id ni su versión
+    if (r.ok) {
+      S.id = r.id; S.rev = r.rev; S.ultimoGuardado = new Date(); S._base = JSON.stringify(T.res);
+      if (!S._cambioDurante) S.sucio = false; else { S._cambioDurante = false; S._sucioDesde = Date.now(); timer = setTimeout(guardar, 1200); }
+    } else if (r.conflicto) { S.conflicto = true; toast(r.msg, 'error'); render(); }
+    else if (r.status !== 401) toast('No se pudo guardar: ' + (r.msg || r.error || 'error de conexión') + '. Se reintentará con el próximo cambio.', 'error');
+    pintarEstado();
+    return r;
+  })();
+  return enCurso;
+}
+// Guarda todo lo pendiente antes de salir del torneo; devuelve false si queda algo sin guardar.
+export async function guardarPendiente() {
+  for (let n = 0; S.sucio && !S.conflicto && n < 3; n++) { const r = await guardar(); if (!r.ok) break; }
+  return !S.sucio;
 }
 export function pintarEstado() {
   const el = document.getElementById('estadoGuardado'); if (!el) return;

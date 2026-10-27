@@ -203,7 +203,7 @@ export function nombreIns(T, ins, corto) {
   const a = nombreJ(j1, T), b = j2 ? nombreJ(j2, T) : (ins.busca ? '‹Busca pareja›' : '');
   if (!b) return a;
   const ord = T.opc.alfabetico ? [a, b].sort((x, y) => x.localeCompare(y, 'es')) : [a, b];
-  return corto ? ord.join(' / ') : ord.join(' / ');
+  return ord.join(' / ');
 }
 
 // ---------- cuadros ----------
@@ -385,20 +385,24 @@ export function asegurarEtapa(T, evId, tipo) {
   if (!ev.etapas.some(s => s.id === tipo)) ev.etapas.push({ id: tipo, tipo });
 }
 // 1.º A vs 2.º B, 2.º A vs 1.º B… en mitades opuestas (verificado en TP).
+// Si hay menos clasificados que líneas, los byes son para los mejores 1.º (al lado de su línea).
 function cruzarGrupos(T, gs, pasan, po) {
   const N = po.tam, pos = ordenSiembra(N);
   const lineaDe = s => pos.indexOf(s); // línea de la «semilla» s (1-based)
   const G = gs.length;
-  // ganadores de grupo como semillas 1..G; segundos como G+1..2G en orden inverso para cruzarlos
-  gs.forEach((g, k) => addEnlace(T, { t: 'pos', c: g.id, n: 1 }, { c: po.id, linea: lineaDe(k + 1) }));
-  if (pasan >= 2) gs.forEach((g, k) => {
-    // el 2.º del grupo k va contra el 1.º de otro grupo: el rival directo en primera ronda
-    const rivalDe1 = lineaDe(((k + 1) % G) + 1) ^ 1;
-    addEnlace(T, { t: 'pos', c: g.id, n: 2 }, { c: po.id, linea: rivalDe1 });
-  });
-  const usadas = new Set(T.enlaces.filter(l => l.a && l.a.c === po.id).map(l => l.a.linea));
-  const libres = Array.from({ length: N }, (_, l) => l).filter(l => !usadas.has(l));
-  for (let p = 3; p <= pasan; p++) gs.forEach(g => { const l = libres.shift(); if (l != null) addEnlace(T, { t: 'pos', c: g.id, n: p }, { c: po.id, linea: l }); });
+  const grupoEn = {}; // línea → índice del grupo que la ocupa
+  const poner = (g, k, n, l) => { grupoEn[l] = k; addEnlace(T, { t: 'pos', c: g.id, n }, { c: po.id, linea: l }); };
+  gs.forEach((g, k) => poner(g, k, 1, lineaDe(k + 1)));
+  const byes = new Set(); for (let k = 0; k < Math.min(G, N - G * pasan); k++) byes.add(lineaDe(k + 1) ^ 1);
+  const libre = l => l >= 0 && l < N && grupoEn[l] == null && !byes.has(l);
+  const elegir = (k, ideal) => {
+    if (libre(ideal) && grupoEn[ideal ^ 1] !== k) return ideal;
+    const ls = Array.from({ length: N }, (_, l) => l).filter(libre);
+    return ls.find(l => grupoEn[l ^ 1] !== k) ?? ls[0];
+  };
+  // el 2.º del grupo k va contra el 1.º de otro grupo: el rival directo en primera ronda
+  if (pasan >= 2) gs.forEach((g, k) => { const l = elegir(k, lineaDe(((k + 1) % G) + 1) ^ 1); if (l != null) poner(g, k, 2, l); });
+  for (let n = 3; n <= pasan; n++) gs.forEach((g, k) => { const l = elegir(k, -1); if (l != null) poner(g, k, n, l); });
 }
 // Orden de semillas por línea (1-based): seed 1 arriba, 2 abajo, 3-4 en N/4+1 y 3N/4, y desde 5 en el extremo opuesto de cada sección (ITF).
 export function ordenSiembra(N) {
@@ -535,6 +539,7 @@ function optimizarSeparacion(T, c, op, fijos) {
 }
 export function borrarResultadosDe(T, cuadroIds) {
   Object.keys(T.res).forEach(k => { if (cuadroIds.includes(k.split(':')[0])) delete T.res[k]; });
+  cuadroIds.forEach(cid => { delete T.ajustes[cid]; }); // un orden manual viejo ya no vale con resultados nuevos
 }
 // Borra un cuadro y todo lo que depende de él (enlaces, resultados).
 export function borrarCuadro(T, cid) {
@@ -604,14 +609,16 @@ export function tablaRR(T, c, partidos) {
     lista.forEach(x => { const v = valor(k, x, sub); (grupos[v] = grupos[v] || []).push(x); });
     const vals = Object.keys(grupos).map(Number).sort((a, b) => b - a);
     if (vals.length === 1) return ordenar(lista, ci + 1);
-    return vals.flatMap(v => ordenar(grupos[v], ci + 1)); // cada empate se vuelve a desempatar dentro de su subgrupo
+    // cada empate se vuelve a desempatar dentro de su subgrupo; en ITF, si el empate se reduce, se vuelve al primer criterio (2 empatados → partido entre ellos)
+    return vals.flatMap(v => ordenar(grupos[v], T.rr.modo === 'itf' && grupos[v].length < lista.length ? 0 : ci + 1));
   };
   let orden = ordenar(ids, 0); // lista de bloques empatados
   const empate = orden.some(b => b.length > 1);
   let plano = orden.flat();
   const aj = T.ajustes[c.id];
-  if (aj && aj.length === plano.length && aj.every(x => plano.includes(x))) plano = aj.slice();
-  return { filas: plano.map((x, n) => ({ id: x, pos: n + 1, ...global[x], manual: !!aj })), empate: empate && !aj, completo: partidos.every(p => p.decidido) };
+  const usa = !!(aj && aj.length === plano.length && aj.every(x => plano.includes(x)));
+  if (usa) plano = aj.slice();
+  return { filas: plano.map((x, n) => ({ id: x, pos: n + 1, ...global[x], manual: usa })), empate: empate && !usa, completo: partidos.every(p => p.decidido) };
 }
 
 // ---------- resolución de todo el torneo ----------
@@ -909,7 +916,9 @@ export function guardarResultado(T, k, { sets, est, g, dur, juez, cancha }) {
 // la API solo entrega sus nombres a socios con sesión iniciada.
 export function publico(T) {
   const R = resolver(T);
-  const jug = {}; T.jugadores.forEach(j => { jug[j.id] = { n: nombreJ(j, T), club: j.club || '', m: esMenor(j, T) || undefined, inv: j.invitado || undefined }; });
+  // Sin fecha de nacimiento no se sabe la edad: en categorías infantiles o juveniles se trata como menor.
+  const juvenil = new Set(); T.inscripciones.forEach(i => { const e = T.eventos.find(x => x.id === i.evento); if (e && (e.genero === 'B' || e.genero === 'G' || (e.edadMax && e.edadMax < 18))) [i.j1, i.j2].forEach(x => x && juvenil.add(x)); });
+  const jug = {}; T.jugadores.forEach(j => { jug[j.id] = { n: nombreJ(j, T), club: j.club || '', m: (esMenor(j, T) || (!j.nac && juvenil.has(j.id))) || undefined, inv: j.invitado || undefined }; });
   const ins = {}; T.inscripciones.forEach(i => { ins[i.id] = { j: [i.j1, i.j2].filter(Boolean), s: i.siembra || {} }; });
   const cuadros = T.cuadros.filter(c => c.visible !== false).map(c => {
     const e = R.cuadros[c.id] || {};
