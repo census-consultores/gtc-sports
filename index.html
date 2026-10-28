@@ -293,7 +293,18 @@ h2.sec .lnk .i{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width
 .tpk-fl{display:none}
 .tpk-pie{display:flex;justify-content:space-between;margin:4px 0 18px}.tpk-pie button{min-height:44px;min-width:44px;font-size:13px;font-weight:800;color:var(--royal);padding:8px 4px}
 .tpk-chips{margin-top:2px}
-.tpg{display:flex;align-items:baseline;gap:8px}.tpg span{font-size:11.5px;font-weight:600;color:var(--muted-2);text-transform:none;letter-spacing:0}
+.tc.tcat .in{display:flex;flex-direction:column;align-items:flex-start;min-height:316px;padding:20px}
+.tc.tcat .st{flex:none;margin-bottom:0}
+.tc.tcat h3{margin:20px 0 6px;font-size:30px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.tc.tcat .dt{flex:none;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcl{align-self:stretch;margin:14px 0 0;border-top:1px solid rgba(255,255,255,.16)}
+.tcl div{display:flex;align-items:center;gap:12px;height:36px;border-bottom:1px solid rgba(255,255,255,.10);font-size:13px;font-weight:600;color:rgba(255,255,255,.92)}
+.tcl div span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.tcl div i{flex:none;min-width:40px;text-align:right;font-style:normal;font-size:11.5px;font-weight:800;color:#F0D98A;letter-spacing:.04em}
+.tc.tcat .cta{margin-top:auto;align-self:stretch}
+.tcat-volver{display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:13px;font-weight:800;color:var(--royal);margin:-4px 0 2px}
+.tcat-t{font-family:var(--fs);font-size:30px;line-height:1.05;color:var(--ink);margin:2px 0 4px}
+.tcat-s{font-size:12.5px;color:var(--muted);margin:0 0 14px}
 .tpm{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px;box-shadow:var(--sh-sm)}
 .tpmeta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
 .tpl{display:flex;align-items:center;gap:10px;padding:3px 0;font-size:14px;color:var(--ink)}.tpl.gan .tpn{font-weight:800}
@@ -950,7 +961,9 @@ var gtcAuth = {
 /* ================= ROUTER + NAV ================= */
 var GLOBAL=['inicio','torneos','calendario','novedades','mas'];
 function ir(v,params,noPush){ if(!noPush)S.hist.push({v:S.vista,p:S.params,t:S.torneo}); S.vista=v;S.params=params||{};window.scrollTo(0,0);render();}
-function atras(){var h=S.hist.pop();if(h){S.vista=h.v;S.params=h.p;S.torneo=h.t;window.scrollTo(0,0);render();}else ir(S.vista==='torneo'?'torneos':'inicio',{},true);}
+function atras(){var h=S.hist.pop();if(h){S.vista=h.v;S.params=h.p;S.torneo=h.t;window.scrollTo(0,0);render();}else if(S.vista==='torneo'&&TOR[S.torneo]){var t=TOR[S.torneo],seg=t.estado==='finalizado'?'fin':'curso',k=torGrupo(t);
+  var n=TOR_LIST.filter(function(x){return (x.estado==='finalizado')===(seg==='fin')&&torGrupo(x)===k;}).length; /* vuelve a la categoría si tiene varios torneos */
+  ir('torneos',n>1?{seg:seg,cat:k}:{seg:seg},true);} else ir('inicio',{},true);}
 var NAV=[['inicio','Inicio'],['torneos','Torneos'],['calendario','Calendario'],['novedades','Novedades'],['mas','Más']];
 var NAVMAP={inicio:'inicio',torneos:'torneos',torneo:'torneos',equipo:'torneos',disciplina:'torneos',partido:'torneos',
   calendario:'calendario',novedades:'novedades',mas:'mas',reglamento:'mas',acerca:'mas'};
@@ -1157,19 +1170,57 @@ function vTorneos(){
     if(!s){ h+=loginCta('Inicia sesión para ver tus torneos'); }
     else if(mis.length){ h+=mis.map(torCard).join(''); }
     else { h+='<div class="card"><div style="padding:8px">'+empty('Aún no estás en un torneo activo','Cuando la Comisión te inscriba en un torneo en curso, aparecerá aquí.')+'</div></div>'; }
-  } else if(seg==='curso'){
-    if(!curso.length){ h+='<div class="card"><div style="padding:8px">'+empty('Sin torneos en curso','')+'</div></div>'; }
-    else h+=torAgrupados(curso,function(t){
+  } else {
+    var lista=seg==='curso'?curso:fin, cat=S.params.cat;
+    var tarjeta=seg==='curso'?function(t){
       var lock = t.tipo==='tp' ? !s : (t.protegido && !registradoEn(t.id));
       return torCard(t)+(lock?'<div class="nota" style="margin:-6px 0 14px">Este torneo tiene información reservada. Inicia sesión y verás el detalle si estás inscrito.</div>':'');
-    });
-  } else {
-    h+= fin.length ? torAgrupados(fin,torCard) : '<div class="card"><div style="padding:8px">'+empty('Sin torneos finalizados','')+'</div></div>';
-    h+='<div class="nota" style="margin-top:6px">Los torneos finalizados son públicos: cualquiera puede ver sus resultados sin iniciar sesión.</div>';
+    }:torCard;
+    var deCat=cat?lista.filter(function(t){return torGrupo(t)===cat;}):[];
+    if(!lista.length) h+='<div class="card"><div style="padding:8px">'+empty(seg==='curso'?'Sin torneos en curso':'Sin torneos finalizados','')+'</div></div>';
+    else if(cat&&deCat.length) h+=torCategoria(cat,deCat,seg,tarjeta);
+    else h+=torCategorias(lista,seg);
+    if(seg==='fin'&&!(cat&&deCat.length)) h+='<div class="nota" style="margin-top:6px">Los torneos finalizados son públicos: cualquiera puede ver sus resultados sin iniciar sesión.</div>';
   }
   if(!s){ h+='<div style="margin-top:16px">'+loginCta('¿Eres socio? Inicia sesión')+'</div>'; }
   h+='</div>'+pie();
   return h;
+}
+/* Categorías de torneos: una tarjeta por categoría (Olimpiadas, Mundialito +44, Pádel…); al tocarla se ven sus torneos,
+   del más nuevo al más antiguo. Si la categoría tiene un solo torneo, la tarjeta abre ese torneo directamente. */
+function torAnio(t){return t.desde?String(t.desde).slice(0,4):'';}
+function torPorCategoria(lista){
+  var g={},desc=function(a,b){return String(b.desde||'').localeCompare(String(a.desde||''));};
+  lista.forEach(function(t){var k=torGrupo(t);(g[k]=g[k]||[]).push(t);});
+  Object.keys(g).forEach(function(k){g[k].sort(desc);});
+  return Object.keys(g).sort(function(a,b){return desc(g[a][0],g[b][0]);}).map(function(k){return [k,g[k]];});
+}
+document.addEventListener('click',function(e){ /* toque repetido sobre la tarjeta de categoría: no lo toma la lista que aparece debajo */
+  if(Date.now()-(window.__tcatT||0)<350&&e.target.closest&&e.target.closest('#app [onclick]:not(.tcat):not(.bk):not(.tcat-volver)')){e.preventDefault();e.stopPropagation();}},true);
+function torCategorias(lista,seg){
+  return torPorCategoria(lista).map(function(par){
+    var k=par[0],ts=par[1],n=ts.length,t0=ts[0];
+    var anios=ts.map(torAnio).filter(Boolean),a1=anios[anios.length-1],a2=anios[0];
+    var ir1='window.__tcatT=Date.now();'+(n===1?'abrirTorneo('+jsq(t0.id)+')':'ir(\'torneos\',{seg:\''+seg+'\',cat:'+jsq(k)+'})');
+    /* misma estructura en todas las tarjetas: etiqueta, título, línea de detalle, lista (hasta 3) y botón al pie */
+    var filas=ts.slice(0,3).map(function(t){return '<div><span>'+esc(t.n)+'</span><i>'+esc(torAnio(t))+'</i></div>';}).join('');
+    return '<button class="tc tcat" onclick="'+ir1+'"><img class="bg" src="'+torHeroImg(t0)+'" alt=""><div class="ov"></div><div class="in">'+
+      '<span class="st'+(seg==='curso'?' curso':'')+'">'+(seg==='curso'?'<i></i>':'')+n+(n===1?' torneo':' torneos')+(a1&&a2&&a1!==a2?' · '+esc(a1)+'–'+esc(a2):a2?' · '+esc(a2):'')+'</span>'+
+      '<h3>'+esc(k)+'</h3>'+
+      '<div class="dt">'+(n===1?(seg==='curso'?'En curso':'Finalizado')+(t0.desde?' · '+esc(torRango(t0)):''):(n>3?'Los 3 más recientes de '+n:'Del más nuevo al más antiguo'))+'</div>'+
+      '<div class="tcl">'+filas+'</div>'+
+      '<span class="cta">'+(n===1?(seg==='curso'?'Entrar al torneo':'Ver resumen del torneo'):'Ver los '+n+' torneos')+' '+sv(IC.flecha)+'</span></div></button>';
+  }).join('');
+}
+function torRango(t){
+  if(!t.desde)return '';
+  var h=t.hasta||t.desde,a=dObj(t.desde).getFullYear(),b=dObj(h).getFullYear();
+  return h===t.desde?fCorta(t.desde)+' '+a:fCorta(t.desde)+(a!==b?' '+a:'')+' – '+fCorta(h)+' '+b;
+}
+function torCategoria(cat,ts,seg,tarjeta){
+  return '<button class="tcat-volver" onclick="ir(\'torneos\',{seg:\''+seg+'\'},true)">'+sv2('<path d="M15 5l-7 7 7 7"/>',16)+' Todas las categorías</button>'+
+    '<h2 class="tcat-t">'+esc(cat)+'</h2><p class="tcat-s">'+ts.length+(ts.length===1?' torneo ':' torneos ')+(seg==='curso'?'en curso':'finalizados')+' · del más nuevo al más antiguo</p>'+
+    ts.map(tarjeta).join('');
 }
 /* ================= TORNEOS DE DEPORTES (módulo tipo Tournament Planner) =================
    Los crea Deportes en /torneos. La app solo lee la vista pública: sin cédulas, contactos ni pagos.
@@ -1184,7 +1235,7 @@ function tpCargar(){
       TP_LIST=j.torneos.map(function(t){
         var dn=TP_DEP[t.deporte]||t.deporte;
         return TOR[t.id]={id:t.id,tipo:'tp',dep:t.deporte,n:t.nombre,grupo:t.grupo||dn,sub:dn+' · Torneo GTC',estado:(t.estado==='finalizado'?'finalizado':'curso'),
-          desde:t.desde,hasta:t.hasta||t.desde,protegido:true,kpis:[['Deporte',dn],['Inicio',fCorta(t.desde)],['Fin',fCorta(t.hasta||t.desde)]],
+          desde:t.desde,hasta:t.hasta||t.desde,protegido:true,kpis:[['Deporte',dn],['Inicio',t.desde?fCorta(t.desde):'Por confirmar'],['Fin',(t.hasta||t.desde)?fCorta(t.hasta||t.desde):'Por confirmar']],
           tabs:[['tp_resumen','Resumen'],['tp_partidos','Partidos'],['tp_cuadros','Cuadros']]};
       });
       TOR_LIST=TOR_LIST.filter(function(t){return t.tipo!=='tp';}).concat(TP_LIST);
@@ -1198,16 +1249,6 @@ function torGrupo(t){
   if(t.tipo==='mun')return 'Mundialito +44';
   if(t.tipo==='camp')return (DIS[t.disc]&&DIS[t.disc].n)||'Campeonatos';
   return 'Otros';
-}
-/* Agrupa por categoría; dentro de cada una, el más nuevo primero. Las categorías también van de la más reciente a la más antigua. */
-function torAgrupados(lista,card){
-  var g={};
-  lista.forEach(function(t){var k=torGrupo(t);(g[k]=g[k]||[]).push(t);});
-  var desc=function(a,b){return String(b.desde||'').localeCompare(String(a.desde||''));};
-  Object.keys(g).forEach(function(k){g[k].sort(desc);});
-  return Object.keys(g).sort(function(a,b){return desc(g[a][0],g[b][0]);}).map(function(k){
-    return '<h2 class="sec tpg">'+esc(k)+'<span>'+g[k].length+(g[k].length===1?' torneo':' torneos')+'</span></h2>'+g[k].map(card).join('');
-  }).join('');
 }
 function tpDetalle(id,forzar){
   var ses=(gtcAuth.esAdmin()?'a':'')+(gtcAuth.cargar()?'s':''); /* al entrar o salir de sesión se vuelve a pedir */
@@ -1972,7 +2013,8 @@ function liDato(k,v){return '<div class="li"><div class="tx"><span style="font-s
 
 /* ================= HISTÓRICO OLIMPIADAS 2025 ================= */
 function vHist2025(){
-  var __bb=backBar('Torneos',"ir('torneos',{seg:'fin'},true)");
+  var __n=torPorEstado('finalizado').filter(function(x){return torGrupo(x)==='Olimpiadas';}).length; /* con varias ediciones vuelve a la categoría */
+  var __bb=backBar('Torneos',"ir('torneos',{seg:'fin'"+(__n>1?",cat:'Olimpiadas'":"")+"},true)");
   var cats=HIST_2025.cats;
   var ci=+(S.params.hc||0); if(isNaN(ci)||ci<0||ci>=cats.length)ci=0;
   var c=cats[ci];
