@@ -287,7 +287,7 @@ export default async function handler(req, res) {
     }
 
     // ---- MÓDULO DE TORNEOS: vistas públicas para la app de socios ----
-    if (accion === 'tp_publicos' || accion === 'tp_publico') return tpPublicas(accion, body, res, { sb, authUser });
+    if (accion === 'tp_publicos' || accion === 'tp_publico') return tpPublicas(accion, body, res, { sb, authUser, admin: (() => { const a = readToken(body.token); return !!(a && ROLES_READ.indexOf(a.r) >= 0); })() });
 
     // resto de acciones requieren token
     const sess = readToken(body.token);
