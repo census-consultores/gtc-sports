@@ -950,7 +950,7 @@ var gtcAuth = {
 /* ================= ROUTER + NAV ================= */
 var GLOBAL=['inicio','torneos','calendario','novedades','mas'];
 function ir(v,params,noPush){ if(!noPush)S.hist.push({v:S.vista,p:S.params,t:S.torneo}); S.vista=v;S.params=params||{};window.scrollTo(0,0);render();}
-function atras(){var h=S.hist.pop();if(h){S.vista=h.v;S.params=h.p;S.torneo=h.t;window.scrollTo(0,0);render();}else ir('inicio',{},true);}
+function atras(){var h=S.hist.pop();if(h){S.vista=h.v;S.params=h.p;S.torneo=h.t;window.scrollTo(0,0);render();}else ir(S.vista==='torneo'?'torneos':'inicio',{},true);}
 var NAV=[['inicio','Inicio'],['torneos','Torneos'],['calendario','Calendario'],['novedades','Novedades'],['mas','Más']];
 var NAVMAP={inicio:'inicio',torneos:'torneos',torneo:'torneos',equipo:'torneos',disciplina:'torneos',partido:'torneos',
   calendario:'calendario',novedades:'novedades',mas:'mas',reglamento:'mas',acerca:'mas'};
@@ -1048,7 +1048,7 @@ function torneoLock(t){
     '<div style="width:66px;height:66px;border-radius:20px;background:var(--navy);display:grid;place-items:center;margin:0 auto 16px">'+
     '<svg viewBox="0 0 24 24" style="width:30px;height:30px;stroke:#fff;fill:none;stroke-width:1.8">'+IC.candado+'</svg></div>'+
     '<h2 style="font-size:20px;color:var(--ink);margin-bottom:9px">Torneo en curso</h2>'+
-    '<p style="color:var(--muted);font-size:13.5px;line-height:1.65;margin-bottom:20px">El detalle de <b>'+esc(t.n)+'</b> está reservado para los socios inscritos mientras el torneo está en juego. Inicia sesión con tu código de socio y tu cédula para ver partidos, tablas y resultados.</p>'+
+    '<p style="color:var(--muted);font-size:13.5px;line-height:1.65;margin-bottom:20px">El detalle de <b>'+esc(t.n)+'</b> está reservado para los socios '+(t.tipo==='tp'?'con sesión iniciada':'inscritos')+' mientras el torneo está en juego. Inicia sesión con tu código de socio y tu cédula para ver partidos, tablas y resultados.</p>'+
     '<button class="btn" style="max-width:290px;margin:0 auto" onclick="ir(\'acceso\',{},true)">Iniciar sesión</button>'+
     '<button class="btn ghost" style="max-width:290px;margin:8px auto 0" onclick="goGlobal(\'torneos\');ir(\'torneos\',{seg:\'fin\'},true)">Ver torneos finalizados</button>'+
     '</div></div>';
@@ -1211,7 +1211,7 @@ function torAgrupados(lista,card){
 }
 function tpDetalle(id,forzar){
   var ses=(gtcAuth.esAdmin()?'a':'')+(gtcAuth.cargar()?'s':''); /* al entrar o salir de sesión se vuelve a pedir */
-  if(!forzar&&TPD[id]&&TPD[id].ses===ses&&(TPD[id].cargando||Date.now()-TPD[id].t<30000))return;
+  if(TPD[id]&&TPD[id].ses===ses&&(TPD[id].cargando||(!forzar&&Date.now()-TPD[id].t<30000)))return; /* Reintentar no duplica pedidos en curso */
   TPD[id]=Object.assign(TPD[id]&&TPD[id].ses===ses?TPD[id]:{},{cargando:true,ses:ses});
   var p=(typeof sbAuth==='object'&&sbAuth&&sbAuth.auth&&sbAuth.auth.getSession)?sbAuth.auth.getSession():Promise.resolve(null);
   var corte=new Promise(function(_,no){setTimeout(function(){no(new Error('tiempo'));},15000);});
@@ -4321,7 +4321,7 @@ NAVMAP.deportes='mas';NAVMAP.depmatch='mas';NAVMAP.analitica='mas';NAVMAP.instal
 (function(){var _render=render;window.render=function(){_render();try{bannerInstalar();}catch(e){}};})();
 
 /* ---- service worker ---- */
-if('serviceWorker' in navigator){
+if('serviceWorker' in navigator&&!esNativo()){ /* en la app nativa no se usa: podría servir una versión vieja */
   var _hadCtrl=!!navigator.serviceWorker.controller, _reloaded=false;
   navigator.serviceWorker.register('/sw.js').then(function(reg){
     try{ reg.update(); }catch(e){}
@@ -4330,6 +4330,8 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('controllerchange',function(){
     if(_reloaded||!_hadCtrl) return; _reloaded=true; location.reload();
   });
+} else if('serviceWorker' in navigator){ /* app nativa: quitar el que dejó una versión anterior */
+  try{ navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }).catch(function(){}); }catch(e){}
 }
 
 /* ====================================================================
