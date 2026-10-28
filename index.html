@@ -262,6 +262,37 @@ h2.sec .lnk .i{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width
 .sb .loc{text-align:center;font-size:11.5px;color:rgba(255,255,255,.65);margin-top:16px;font-weight:600}
 
 /* ---------- Standings ---------- */
+.tpk{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin:4px 0 8px}
+.tpk-col{min-width:0}
+.tpk-h{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--royal);padding:0 2px 8px;border-bottom:2px solid var(--gold);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpk-b{display:flex;flex-direction:column}
+.tpk-par{position:relative;flex:1;display:flex;flex-direction:column;justify-content:space-around}
+.tpk-col:first-child .tpk-par:not(.uno)::after{content:'';position:absolute;right:-14px;top:25%;bottom:25%;width:13px;border:1.5px solid var(--muted-2);border-left:0;border-radius:0 10px 10px 0;opacity:.6}
+.tpk-col:first-child .tpk-par:not(.uno)::before{content:'';position:absolute;right:-27px;top:50%;width:13px;border-top:1.5px solid var(--muted-2);opacity:.6}
+.tpk-col:first-child .tpk-par.uno.oro::after{content:'';position:absolute;right:-27px;top:50%;width:27px;border-top:2px solid var(--gold)}
+.tpk-m{position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(20,23,58,.05),0 6px 14px rgba(20,23,58,.06);overflow:hidden}
+.tpk-m.vivo{border-color:rgba(229,72,77,.5);box-shadow:0 0 0 3px rgba(229,72,77,.10),0 6px 14px rgba(20,23,58,.06)}
+.tpk-m.bye{background:var(--card-2);box-shadow:none;border-style:dashed}
+.tpk-meta{font-size:9.5px;font-weight:700;letter-spacing:.02em;color:var(--muted-2);padding:5px 9px 4px;background:var(--card-2);border-bottom:1px solid var(--line-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpk-meta .tpv{margin:0;font-size:9.5px}
+.tpk-l{display:flex;align-items:center;gap:5px;padding:5px 7px 5px 0;min-height:30px;border-left:3px solid transparent}
+.tpk-l+.tpk-l{border-top:1px solid var(--line-2)}
+.tpk-l.gan{border-left-color:var(--navy)}.tpk-l.gan .tpk-n{font-weight:800;color:var(--ink)}
+.tpk-l.per .tpk-n{color:var(--muted)}
+.tpk-sd{width:13px;flex:none;text-align:center;font-size:9.5px;font-weight:800;color:var(--gold)}
+.tpk-n{flex:1;min-width:0;font-size:11.5px;line-height:1.28;color:var(--ink)}.tpk-n>span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpk-n.q{color:var(--muted-2);font-style:italic}
+.tpk-sc{display:flex;align-items:center;gap:1px;font-variant-numeric:tabular-nums}.tpk-sc b{min-width:13px;text-align:center;font-size:11.5px;font-weight:600;color:var(--muted-2)}.tpk-sc b.w{color:var(--ink);font-weight:800}
+.tpk-sc em{font-style:normal;font-size:9.5px;font-weight:800;color:var(--rojo)}
+.tpk-ok{width:5px;height:5px;border-radius:50%;background:var(--gold);margin-left:3px}
+.tpk-camp{position:relative;text-align:center;padding:20px 12px 18px;border-radius:16px;color:#fff;background:radial-gradient(120% 90% at 50% 0%,#3B49A0 0%,#1B2050 55%,#0C1030 100%);box-shadow:0 14px 30px rgba(12,16,48,.28);border:1px solid rgba(201,162,39,.6)}
+.tpk-copa{width:46px;height:46px;margin:0 auto 10px;border-radius:50%;display:grid;place-items:center;color:#1B2050;background:linear-gradient(145deg,#F0D98A,#C9A227);box-shadow:0 6px 16px rgba(201,162,39,.45)}
+.tpk-lab{font-size:9.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#F0D98A;margin-bottom:7px}
+.tpk-camp .tpk-n{color:#fff;font-family:var(--fs);font-size:17px;line-height:1.25}.tpk-camp .tpk-n>span{white-space:normal}
+.tpk-camp.pend{background:var(--card);color:var(--ink);border:1px dashed var(--line);box-shadow:none}.tpk-camp.pend .tpk-lab{color:var(--muted)}.tpk-camp.pend .tpk-copa{opacity:.45}
+.tpk-fl{display:none}
+.tpk-pie{display:flex;justify-content:space-between;margin:4px 0 18px}.tpk-pie button{font-size:12.5px;font-weight:800;color:var(--royal);padding:8px 2px}
+.tpk-chips{margin-top:2px}
 .tpg{display:flex;align-items:baseline;gap:8px}.tpg span{font-size:11.5px;font-weight:600;color:var(--muted-2);text-transform:none;letter-spacing:0}
 .tpm{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px;box-shadow:var(--sh-sm)}
 .tpmeta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
@@ -1274,6 +1305,61 @@ function tpTabla(D,c){
   return '<div class="card" style="overflow-x:auto;margin-bottom:10px"><table class="st"><thead><tr><th class="pos"></th><th class="l">Posiciones</th><th>PJ</th><th>G</th><th>P</th><th>Sets</th><th>Games</th></tr></thead><tbody>'+
     c.tabla.map(function(r){return '<tr><td class="pos">'+r.pos+'</td><td class="l">'+tpNom(D,r.id)+'</td><td>'+r.pj+'</td><td>'+r.pg+'</td><td>'+r.pp+'</td><td>'+r.sf+'-'+r.sc+'</td><td>'+r.gf+'-'+r.gc+'</td></tr>';}).join('')+'</tbody></table></div>';
 }
+/* Llave eliminatoria: columnas por ronda con conectores, desplazable de lado en el celular. */
+function tpkNom(D,x){
+  if(!x)return '<span class="tpk-n q">Por definir</span>';
+  if(x==='BYE')return '<span class="tpk-n q">Bye</span>';
+  var i=D.inscripciones[x]; if(!i)return '<span class="tpk-n q">—</span>';
+  return '<span class="tpk-n">'+i.j.map(function(j){return '<span>'+esc(D.jugadores[j]?D.jugadores[j].n:'')+'</span>';}).join('')+'</span>';
+}
+function tpkSiembra(D,x){var i=x&&x!=='BYE'&&D.inscripciones[x],s=i&&i.s&&(i.s.main||i.s.qual);return '<span class="tpk-sd">'+(s?esc(s):'')+'</span>';}
+function tpkM(D,p){
+  var lado=function(l){
+    var x=l==='a'?p.a:p.b,g=p.g===l,pe=p.g&&p.g!==l&&p.g!=='t';
+    var sc=p.s?p.s.map(function(s){var a=l==='a'?s[0]:s[1],b=l==='a'?s[1]:s[0];return '<b class="'+(a>b?'w':'')+'">'+a+'</b>';}).join(''):'';
+    if(!sc&&g&&p.est&&TP_EST[p.est])sc='<em>'+TP_EST[p.est]+'</em>';
+    return '<div class="tpk-l'+(g?' gan':'')+(pe?' per':'')+'">'+tpkSiembra(D,x)+tpkNom(D,x)+'<span class="tpk-sc">'+sc+(g?'<i class="tpk-ok"></i>':'')+'</span></div>';
+  };
+  var meta=p.bye?'Pasa directo':p.vivo?'<span class="tpv"><i></i>En cancha'+(p.ch?' '+esc(p.ch):'')+'</span>':
+    (p.f?esc(fCorta(p.f))+(p.h?' · '+esc(p.h):'')+(p.ch?' · Cancha '+esc(p.ch):''):(p.g?'Terminado':'Por programar'));
+  return '<div class="tpk-m'+(p.bye?' bye':'')+(p.vivo?' vivo':'')+'"><div class="tpk-meta">'+meta+'</div>'+lado('a')+lado('b')+'</div>';
+}
+var TPK={}; /* ronda visible de cada llave */
+function tpkIr(cid,i){TPK[cid]=i;render();}
+function tpkSwipe(el,cid,max){
+  var x0=null;
+  el.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
+  el.addEventListener('touchend',function(e){if(x0==null)return;var dx=e.changedTouches[0].clientX-x0;x0=null;
+    var i=TPK[cid]||0;if(dx<-50&&i<max)tpkIr(cid,i+1);else if(dx>50&&i>0)tpkIr(cid,i-1);},{passive:true});
+}
+/* Se ven dos columnas a la vez: la ronda elegida y la siguiente (o el campeón), alineadas con conectores. */
+function tpLlave(D,c){
+  var LOG=Math.round(Math.log(c.tam)/Math.LN2),R=c.rondas||LOG,completo=R>=LOG;
+  var by={};D.partidos.forEach(function(p){if(p.c===c.id)by[p.k]=p;});
+  var dobles=D.eventos.some(function(e){return e.id===c.ev&&e.t==='D';}),slot=dobles?124:92;
+  var nombres=[];for(var r=0;r<R;r++)nombres.push(tpRonda(D,{c:c.id,r:r}));
+  if(completo)nombres.push('Campeón');
+  var max=nombres.length-2; if(max<0)max=0;
+  var i=Math.min(TPK[c.id]||0,max);
+  var partido=function(r,k){var p=by[c.id+':'+r+':'+k];
+    if(!p&&r===0&&c.l){var a=c.l[2*k],b=c.l[2*k+1];p={bye:true,a:a,b:b,g:a==='BYE'?'b':b==='BYE'?'a':null};}
+    return tpkM(D,p||{a:null,b:null});};
+  var n=c.tam/Math.pow(2,i+1),alto=Math.max(n,1)*slot+(n===1?40:0);
+  var col1='',col2='';
+  if(n>1)for(var k=0;k<n;k+=2)col1+='<div class="tpk-par">'+partido(i,k)+partido(i,k+1)+'</div>';
+  else col1='<div class="tpk-par uno'+(completo?' oro':'')+'">'+partido(i,0)+'</div>';
+  if(i+1<R)for(var k2=0;k2<n/2;k2++)col2+='<div class="tpk-par uno">'+partido(i+1,k2)+'</div>';
+  else if(completo)col2='<div class="tpk-par uno">'+(c.ganador
+      ?'<div class="tpk-camp"><div class="tpk-copa">'+sv2(IC.torneos,22)+'</div><div class="tpk-lab">Campeón</div>'+tpkNom(D,c.ganador)+'</div>'
+      :'<div class="tpk-camp pend"><div class="tpk-copa">'+sv2(IC.torneos,22)+'</div><div class="tpk-lab">Campeón</div><span class="tpk-n q">Por definir</span></div>')+'</div>';
+  var chips='<div class="tpchips tpk-chips">'+nombres.slice(0,max+1).map(function(x,k){
+    return '<button class="'+(k===i?'on':'')+'" onclick="tpkIr(\''+c.id+'\','+k+')">'+esc(x)+(k<nombres.length-1?' <span class="tpk-fl">→ '+esc(nombres[k+1])+'</span>':'')+'</button>';}).join('')+'</div>';
+  setTimeout(function(){var el=document.getElementById('tpk-'+c.id);if(el&&!el._sw){el._sw=1;tpkSwipe(el,c.id,max);}},0);
+  return chips+'<div class="tpk" id="tpk-'+c.id+'">'+
+    '<div class="tpk-col"><div class="tpk-h">'+esc(nombres[i])+'</div><div class="tpk-b" style="height:'+alto+'px">'+col1+'</div></div>'+
+    '<div class="tpk-col"><div class="tpk-h">'+esc(nombres[i+1]||'')+'</div><div class="tpk-b" style="height:'+alto+'px">'+col2+'</div></div>'+
+    '</div>'+(max>0?'<div class="tpk-pie">'+(i>0?'<button onclick="tpkIr(\''+c.id+'\','+(i-1)+')">‹ '+esc(nombres[i-1])+'</button>':'<span></span>')+(i<max?'<button onclick="tpkIr(\''+c.id+'\','+(i+1)+')">'+esc(nombres[i+2]||nombres[i+1])+' ›</button>':'<span></span>')+'</div>':'');
+}
 function tpCuadros(D,t){
   var f=tpFiltroCat(D,t,'tp_cuadros');
   var cs=D.cuadros.filter(function(c){return !f.ev||c.ev===f.ev;});
@@ -1283,6 +1369,7 @@ function tpCuadros(D,t){
     var rs={};ps.forEach(function(p){(rs[p.r]=rs[p.r]||[]).push(p);});
     var ev=tpEvento(D,c);
     var h=secHead([f.ev?'':ev.n,c.n&&c.n!==ev.n?c.n:''].filter(Boolean).join(' · ')||'Cuadro');
+    if(!c.tabla&&c.t!=='grafo'&&c.tam>=2)return h+tpLlave(D,c);
     if(c.tabla)h+=tpTabla(D,c);
     Object.keys(rs).map(Number).sort(function(a,b){return a-b;}).forEach(function(r){
       h+='<div class="tpr">'+esc(tpRonda(D,rs[r][0]))+'</div>'+rs[r].map(function(p){return tpPartido(D,p,false,true);}).join('');
