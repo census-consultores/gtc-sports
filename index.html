@@ -821,7 +821,7 @@ function teamSportRecord(teamId,cat){var out=[];var discs={};DATA.partidos.forEa
 
 /* ================= MODELO DE TORNEOS ================= */
 var TOR={
-  olimpiadas2026:{id:'olimpiadas2026',tipo:'oli',n:'Olimpiadas GTC',sub:'Edición 2026',estado:'curso',
+  olimpiadas2026:{id:'olimpiadas2026',tipo:'oli',n:'Olimpiadas GTC',sub:'Edición 2026',estado:(hoyISO()>'2026-11-21'?'finalizado':'curso'), /* pasada la fecha final queda finalizado y público (igual que OLI_2026_FIN en el servidor) */
     desde:'2026-09-21',hasta:'2026-11-21',protegido:true,
     kpis:[['Disciplinas',DATA.disciplinas.length],['Equipos',DATA.equipos.length],
           ['Inscritos',DATA.equipos.reduce(function(a,e){return a+nJug(e);},0)],['Partidos',DATA.partidos.length]],
@@ -921,7 +921,10 @@ var gtcAuth = {
   cargar:function(){try{var s=localStorage.getItem('gtc_sesion');if(s){this.sesion=JSON.parse(s);if(this.sesion&&this.sesion.token)this.token=this.sesion.token;}}catch(e){}return this.sesion;},
   guardar:function(s){this.sesion=s;if(s&&s.token)this.token=s.token;try{localStorage.setItem('gtc_sesion',JSON.stringify(s));}catch(e){}},
   salir:function(){this.sesion=null;this.token=null;try{localStorage.removeItem('gtc_sesion');}catch(e){}
-    try{(DATA.equipos||[]).forEach(function(e){if(gtcAuth.esMenor(e.cat))e.j=[];});rebuildIndexes();campRegistrar();nominasReservadas();}catch(e){}
+    /* cerrar también la sesión de Apple/Google/correo; luego quitar los menores y recargar solo los de torneos terminados */
+    var so=null;try{if(typeof sbAuth==='object'&&sbAuth&&sbAuth.auth&&sbAuth.auth.signOut)so=sbAuth.auth.signOut();}catch(e){}
+    try{(DATA.equipos||[]).concat(CAMP.equipos||[]).forEach(function(e){if(gtcAuth.esMenor(e.cat))e.j=[];});rebuildIndexes();campRegistrar();}catch(e){}
+    Promise.resolve(so).catch(function(){}).then(function(){try{nominasReservadas();}catch(e){}});
     S.hist=[];ir('inicio',{},true);},
   /* login de socio real: código de socio + cédula (10 díg.) contra la tabla jugadores */
   buscar:function(socio,cedula){var s=socioNorm(socio),c=cedulaNorm(cedula);
@@ -985,8 +988,8 @@ function goGlobal(v){ window.__calSel=null; if(v==='inicio'||v==='torneos'||v===
 function registradoEn(id){if(gtcAuth.esAdmin())return true;var s=gtcAuth.cargar();return !!(s&&s.torneos&&s.torneos.indexOf(id)>=0);}
 function abrirTorneo(id){S.torneo=id;S.hist=[];if(id==='olimpiadas2025'){ir('hist2025',{},true);return;}var t=TOR[id];ir('torneo',{tab:t.tabs[0][0]},true);}
 /* ¿puede ver el detalle de este torneo? Finalizados: público. En curso: admin o sesión iniciada. */
-/* torneo terminado: finalizado por Deportes, o las Olimpiadas pasada su fecha final (política §7: nóminas completas) */
-function torTerminado(id){var t=TOR[id];return !!t&&(t.estado==='finalizado'||(t.tipo==='oli'&&!!t.hasta&&hoyISO()>t.hasta));}
+/* torneo terminado (política §7: nóminas completas de menores para cualquiera) */
+function torTerminado(id){var t=TOR[id];return !!t&&t.estado==='finalizado';}
 function puedeVerTorneo(t){ if(!t)return false; if(t.estado==='finalizado')return true; return gtcAuth.esAdmin()||!!gtcAuth.cargar(); }
 
 /* ================= COMPONENTES ================= */
@@ -2074,7 +2077,7 @@ function vEquipo(){
   /* PLANTILLA — se arma aquí y se agrega al FINAL de la pantalla */
   var plHTML=secHead('Plantilla');
   if(menor&&!puede){
-    plHTML+='<div class="prot">'+sv(IC.candado)+'<div><b>Nómina protegida</b><p>Por tratarse de una categoría de menores, los nombres de los deportistas solo están disponibles para la Comisión de Deportes mientras el torneo está en curso; al finalizar se publican. '+nJug(e)+' deportistas inscritos.</p></div></div>';
+    plHTML+='<div class="prot">'+sv(IC.candado)+'<div><b>Nómina protegida</b><p>Por tratarse de una categoría de menores, los nombres de los deportistas solo están disponibles para la administración del Club mientras el torneo está en curso; al finalizar se publican. '+nJug(e)+' deportistas inscritos.</p></div></div>';
   } else {
     plHTML+='<div class="card"><div style="padding:6px 15px">'+e.j.map(function(j,i){
       return '<div class="player" data-pn="'+esc(slugTeam(j.n))+'"><span class="av">'+esc(ini(j.n))+'</span><span class="nm">'+esc(titulo(j.n))+'</span>'+(j.inv?'<span class="rr">Invitado</span>':'<span class="rr pnum">'+(i+1)+'</span>')+'<span class="pstat" data-pn="'+esc(slugTeam(j.n))+'"></span></div>';}).join('')+'</div></div>';
@@ -2812,8 +2815,8 @@ function vTerminos(){
       'Supabase (base de datos e inicio de sesión), Vercel (alojamiento), Resend (correos), Google Firebase y Apple (notificaciones e inicio de sesión), con servidores en Estados Unidos. '+
       'El detalle está en gtcsports.ec/privacidad.html.</p>'+
     '<h3>6. Protección de menores</h3>'+
-    '<p>Las categorías infantiles y juveniles tienen protección reforzada: mientras el torneo está en curso, sus nóminas no se publican y solo la Comisión de Deportes las ve; '+
-      'el nombre de un menor aparece únicamente en las tablas de goleadores y de tarjetas, y solo para quien inició sesión. '+
+    '<p>Las categorías infantiles y juveniles tienen protección reforzada: mientras el torneo está en curso, sus nóminas no se publican y solo las ve la administración del Club (Deportes, Comisión de Deportes y Directorio); '+
+      'el nombre de un menor aparece únicamente en la tabla de goleadores y en los goles y tarjetas del detalle de cada partido, y solo para quien inició sesión. '+
       'Cuando el torneo finaliza, sus resultados y nóminas quedan públicos con los nombres completos de todos los participantes. No se publican fechas de nacimiento ni cédulas. '+
       'El consentimiento de menores corresponde a su representante legal.</p>'+
     '<h3>7. Tus derechos</h3>'+
