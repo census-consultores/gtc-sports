@@ -262,6 +262,19 @@ h2.sec .lnk .i{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width
 .sb .loc{text-align:center;font-size:11.5px;color:rgba(255,255,255,.65);margin-top:16px;font-weight:600}
 
 /* ---------- Standings ---------- */
+.tpg{display:flex;align-items:baseline;gap:8px}.tpg span{font-size:11.5px;font-weight:600;color:var(--muted-2);text-transform:none;letter-spacing:0}
+.tpm{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px;box-shadow:var(--sh-sm)}
+.tpmeta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.tpl{display:flex;align-items:center;gap:10px;padding:3px 0;font-size:14px;color:var(--ink)}.tpl.gan .tpn{font-weight:800}
+.tpn{flex:1;min-width:0}.tpsets{display:flex;gap:4px}.tpsets b{min-width:20px;text-align:center;font-weight:600;color:var(--muted)}.tpsets b.w{color:var(--ink);font-weight:800}
+.tpq{color:var(--muted-2);font-style:normal}.tps{color:var(--gold);font-weight:700;font-size:12px}
+.tpv{display:inline-flex;align-items:center;gap:5px;color:var(--live);margin-left:auto}.tpv i{width:7px;height:7px;border-radius:50%;background:var(--live)}
+.tpe{margin-left:auto;color:var(--rojo)}.tph{color:var(--ink)}
+.tpr{font-size:12px;font-weight:800;color:var(--royal);margin:12px 2px 6px;text-transform:uppercase;letter-spacing:.05em}
+.tpchips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:6px}.tpchips button{flex:none;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:12.5px;font-weight:700;color:var(--muted)}
+.tpchips button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.tpcards{padding:4px 12px}.tpcamp{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-2);color:var(--gold)}.tpcamp:last-child{border-bottom:0}
+.tpcamp span{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.tpcamp b{color:var(--ink);font-size:14.5px}
 table.st{width:100%;border-collapse:collapse;font-size:13px}
 .st th{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted-2);padding:9px 4px;border-bottom:1px solid var(--line)}
 .st th.l,.st td.l{text-align:left;padding-left:13px} .st th{text-align:center}
@@ -1115,18 +1128,172 @@ function vTorneos(){
     else { h+='<div class="card"><div style="padding:8px">'+empty('Aún no estás en un torneo activo','Cuando la Comisión te inscriba en un torneo en curso, aparecerá aquí.')+'</div></div>'; }
   } else if(seg==='curso'){
     if(!curso.length){ h+='<div class="card"><div style="padding:8px">'+empty('Sin torneos en curso','')+'</div></div>'; }
-    else h+=curso.map(function(t){
-      var lock = (t.protegido && !registradoEn(t.id));
+    else h+=torAgrupados(curso,function(t){
+      var lock = t.tipo==='tp' ? !s : (t.protegido && !registradoEn(t.id));
       return torCard(t)+(lock?'<div class="nota" style="margin:-6px 0 14px">Este torneo tiene información reservada. Inicia sesión y verás el detalle si estás inscrito.</div>':'');
-    }).join('');
+    });
   } else {
-    h+= fin.length ? fin.map(torCard).join('') : '<div class="card"><div style="padding:8px">'+empty('Sin torneos finalizados','')+'</div></div>';
+    h+= fin.length ? torAgrupados(fin,torCard) : '<div class="card"><div style="padding:8px">'+empty('Sin torneos finalizados','')+'</div></div>';
     h+='<div class="nota" style="margin-top:6px">Los torneos finalizados son públicos: cualquiera puede ver sus resultados sin iniciar sesión.</div>';
   }
   if(!s){ h+='<div style="margin-top:16px">'+loginCta('¿Eres socio? Inicia sesión')+'</div>'; }
   h+='</div>'+pie();
   return h;
 }
+/* ================= TORNEOS DE DEPORTES (módulo tipo Tournament Planner) =================
+   Los crea Deportes en /torneos. La app solo lee la vista pública: sin cédulas, contactos ni pagos.
+   En curso: solo socios con sesión. Nombres de menores: solo con sesión (los oculta el servidor). */
+var TP_LIST=[], TPD={}, TP_DEP={tenis:'Tenis',padel:'Pádel',beachtenis:'Beach tenis',pingpong:'Ping pong',pickleball:'Pickleball'};
+function tpCargar(){
+  return fetch(API_BASE+'/api/gtc-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion:'tp_publicos'})})
+    .then(function(r){return r.ok?r.json():null;}).then(function(j){
+      if(!j||!j.ok||!Array.isArray(j.torneos))return;
+      Object.keys(TOR).forEach(function(k){if(TOR[k]&&TOR[k].tipo==='tp')delete TOR[k];});
+      TP_LIST=j.torneos.map(function(t){
+        var dn=TP_DEP[t.deporte]||t.deporte;
+        return TOR[t.id]={id:t.id,tipo:'tp',dep:t.deporte,n:t.nombre,grupo:t.grupo||dn,sub:dn+' · Torneo GTC',estado:(t.estado==='finalizado'?'finalizado':'curso'),
+          desde:t.desde,hasta:t.hasta||t.desde,protegido:true,kpis:[['Deporte',dn],['Inicio',fCorta(t.desde)],['Fin',fCorta(t.hasta||t.desde)]],
+          tabs:[['tp_resumen','Resumen'],['tp_partidos','Partidos'],['tp_cuadros','Cuadros']]};
+      });
+      TOR_LIST=TOR_LIST.filter(function(t){return t.tipo!=='tp';}).concat(TP_LIST);
+      render();
+    }).catch(function(){});
+}
+/* Categoría del torneo para agruparlos en la lista (Olimpiadas, Mundialito +44, Pádel…) */
+function torGrupo(t){
+  if(t.grupo)return t.grupo;
+  if(t.tipo==='oli')return 'Olimpiadas';
+  if(t.tipo==='mun')return 'Mundialito +44';
+  if(t.tipo==='camp')return (DIS[t.disc]&&DIS[t.disc].n)||'Campeonatos';
+  return 'Otros';
+}
+/* Agrupa por categoría; dentro de cada una, el más nuevo primero. Las categorías también van de la más reciente a la más antigua. */
+function torAgrupados(lista,card){
+  var g={};
+  lista.forEach(function(t){var k=torGrupo(t);(g[k]=g[k]||[]).push(t);});
+  var desc=function(a,b){return String(b.desde||'').localeCompare(String(a.desde||''));};
+  Object.keys(g).forEach(function(k){g[k].sort(desc);});
+  return Object.keys(g).sort(function(a,b){return desc(g[a][0],g[b][0]);}).map(function(k){
+    return '<h2 class="sec tpg">'+esc(k)+'<span>'+g[k].length+(g[k].length===1?' torneo':' torneos')+'</span></h2>'+g[k].map(card).join('');
+  }).join('');
+}
+function tpDetalle(id){
+  if(TPD[id]&&(TPD[id].cargando||Date.now()-TPD[id].t<30000))return;
+  TPD[id]=Object.assign(TPD[id]||{},{cargando:true});
+  var p=(typeof sbAuth==='object'&&sbAuth&&sbAuth.auth&&sbAuth.auth.getSession)?sbAuth.auth.getSession():Promise.resolve(null);
+  Promise.resolve(p).then(function(sr){
+    var at=sr&&sr.data&&sr.data.session&&sr.data.session.access_token;
+    return fetch(API_BASE+'/api/gtc-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion:'tp_publico',id:id,access_token:at||''})});
+  }).then(function(r){return r.json();}).then(function(j){
+    TPD[id]={t:Date.now(),ok:!!(j&&j.ok),bloqueado:!!(j&&j.bloqueado),D:j&&j.torneo,msg:j&&j.msg};
+  }).catch(function(){TPD[id]={t:Date.now(),ok:false,msg:'Sin conexión'};}).then(function(){if(S.vista==='torneo'&&S.torneo===id)render();});
+}
+function tpCuerpo(t,fn){
+  tpDetalle(t.id);
+  var d=TPD[t.id];
+  if(!d||(d.cargando&&!d.D))return '<div class="card"><div style="padding:22px;text-align:center;color:var(--muted)">Cargando el torneo…</div></div>';
+  if(d.bloqueado)return torneoLock(t).replace('<div class="wrap" style="padding-top:26px">','<div>');
+  if(!d.ok||!d.D)return '<div class="card"><div style="padding:8px">'+empty('No se pudo cargar el torneo',d.msg||'Intenta de nuevo en unos minutos.')+'</div></div>';
+  return fn(d.D,t);
+}
+function tpNom(D,x){
+  if(!x)return '<i class="tpq">Por definir</i>';
+  if(x==='BYE')return '<i class="tpq">Bye</i>';
+  var i=D.inscripciones[x]; if(!i)return '—';
+  var n=i.j.map(function(j){return D.jugadores[j]?D.jugadores[j].n:'';}).filter(Boolean).join(' / ');
+  var s=i.s&&(i.s.main||i.s.qual);
+  return esc(n)+(s?' <span class="tps">['+esc(s)+']</span>':'');
+}
+var TP_EST={wo:'W.O.',wom:'W.O.',ret:'Retiro',dis:'Descalificación',np:'No jugado'};
+function tpMarc(p,lado){
+  if(!p.s)return '';
+  return p.s.map(function(s){var a=lado==='a'?s[0]:s[1],b=lado==='a'?s[1]:s[0];return '<b class="'+(a>b?'w':'')+'">'+a+'</b>';}).join('');
+}
+function tpCuadroDe(D,cid){for(var i=0;i<D.cuadros.length;i++)if(D.cuadros[i].id===cid)return D.cuadros[i];return null;}
+function tpEvento(D,c){for(var i=0;i<D.eventos.length;i++)if(D.eventos[i].id===c.ev)return D.eventos[i];return {n:''};}
+function tpRonda(D,p){
+  var r=D.rondas&&D.rondas[p.c],n=(r&&r[p.r])||'',c=tpCuadroDe(D,p.c)||{};
+  if(c.tabla)return (c.n||'Grupo')+' · Fecha '+(p.r+1);
+  var m=/^([RCQ])(\d+)$/.exec(n);
+  if(m)return m[1]==='Q'?'Clasificación '+m[2]:m[1]==='C'?'Ronda '+m[2]:'Ronda de '+m[2];
+  return n||('Ronda '+(p.r+1));
+}
+function tpPartido(D,p,conCat,sinRonda){
+  var c=tpCuadroDe(D,p.c)||{};
+  var meta=[sinRonda&&p.f?esc(fCorta(p.f)):'',p.h?'<b class="tph">'+esc(p.h)+'</b>':'',p.ch?'Cancha '+esc(p.ch):'',conCat?esc(tpEvento(D,c).n):'',sinRonda?'':esc(tpRonda(D,p))].filter(Boolean).join(' · ');
+  var fila=function(l){var x=l==='a'?p.a:p.b,g=p.g===l;
+    return '<div class="tpl'+(g?' gan':'')+'"><span class="tpn">'+tpNom(D,x)+'</span><span class="tpsets">'+tpMarc(p,l)+'</span></div>';};
+  var est=p.vivo?'<span class="tpv"><i></i>En cancha</span>':(p.est&&TP_EST[p.est]?'<span class="tpe">'+TP_EST[p.est]+'</span>':'');
+  return '<div class="tpm"><div class="tpmeta"><span>'+meta+'</span>'+est+'</div>'+fila('a')+fila('b')+'</div>';
+}
+function tpCampeones(D){
+  var out=[];
+  D.cuadros.forEach(function(c){
+    if(!c.ganador||c.tabla)return;
+    var dep=D.partidos.filter(function(p){return p.c===c.id;});
+    var final=dep.filter(function(p){return p.r===Math.max.apply(null,dep.map(function(q){return q.r;}));});
+    if(final.length!==1)return;
+    out.push('<div class="tpcamp">'+sv2(IC.estrella,15)+'<div><span>'+esc(tpEvento(D,c).n)+(c.n&&c.n!==tpEvento(D,c).n?' · '+esc(c.n):'')+'</span><b>'+tpNom(D,c.ganador)+'</b></div></div>');
+  });
+  return out.join('');
+}
+function tpResumen(D,t){
+  var hoy=hoyISO();
+  var vivos=D.partidos.filter(function(p){return p.vivo;});
+  var deHoy=D.partidos.filter(function(p){return p.f===hoy&&!p.vivo;}).sort(function(a,b){return String(a.h||'').localeCompare(String(b.h||''));});
+  var prox=D.partidos.filter(function(p){return p.f&&p.f>hoy&&!p.g;}).sort(function(a,b){return (a.f+(a.h||'')).localeCompare(b.f+(b.h||''));});
+  var jug=D.partidos.filter(function(p){return p.g||p.est;}).length;
+  var h=kpirow([['Categorías',D.eventos.length],['Partidos',D.partidos.length],['Jugados',jug]]);
+  var camp=tpCampeones(D); if(camp)h+=secHead(t.estado==='finalizado'?'Campeones':'Campeones de categoría')+'<div class="card tpcards">'+camp+'</div>';
+  if(vivos.length)h+=secHead('En cancha ahora')+vivos.map(function(p){return tpPartido(D,p,true);}).join('');
+  if(deHoy.length)h+=secHead('Hoy')+deHoy.map(function(p){return tpPartido(D,p,true);}).join('');
+  else if(prox.length)h+=secHead('Próxima fecha · '+fLarga(prox[0].f))+prox.filter(function(p){return p.f===prox[0].f;}).map(function(p){return tpPartido(D,p,true);}).join('');
+  if(!vivos.length&&!deHoy.length&&!prox.length&&!camp)h+='<div class="card"><div style="padding:8px">'+empty('Todavía no hay partidos programados','Deportes publicará aquí la programación y los resultados.')+'</div></div>';
+  h+='<div class="nota" style="margin-top:12px">Resultados y horarios registrados por Deportes del Guayaquil Tenis Club.</div>';
+  return h;
+}
+function tpFiltroCat(D,t,tab){
+  if(D.eventos.length<2)return {ev:null,html:''};
+  var ev=S.params.ev||'';
+  return {ev:ev||null,html:'<div class="tpchips">'+[['','Todas']].concat(D.eventos.map(function(e){return [e.id,e.n];})).map(function(x){
+    return '<button class="'+(ev===x[0]?'on':'')+'" onclick="ir(\'torneo\',{tab:\''+tab+'\',ev:\''+x[0]+'\'},true)">'+esc(x[1])+'</button>';}).join('')+'</div>'};
+}
+function tpPartidos(D,t){
+  var f=tpFiltroCat(D,t,'tp_partidos');
+  var ps=D.partidos.filter(function(p){var c=tpCuadroDe(D,p.c);return !f.ev||(c&&c.ev===f.ev);});
+  var dias={},sin=[];
+  ps.forEach(function(p){if(p.f)(dias[p.f]=dias[p.f]||[]).push(p);else if(p.a&&p.b&&!p.g&&!p.est)sin.push(p);});
+  var h=f.html;
+  var ks=Object.keys(dias).sort();
+  if(!ks.length&&!sin.length)return h+'<div class="card"><div style="padding:8px">'+empty('Sin partidos programados','')+'</div></div>';
+  ks.forEach(function(d){h+=secHead(fLarga(d))+dias[d].sort(function(a,b){return String(a.h||'').localeCompare(String(b.h||''))||String(a.ch||'').localeCompare(String(b.ch||''));}).map(function(p){return tpPartido(D,p,!f.ev);}).join('');});
+  if(sin.length)h+=secHead('Por programar')+sin.map(function(p){return tpPartido(D,p,!f.ev);}).join('');
+  return h;
+}
+function tpTabla(D,c){
+  return '<div class="card" style="overflow-x:auto;margin-bottom:10px"><table class="st"><thead><tr><th class="pos"></th><th class="l">Posiciones</th><th>PJ</th><th>G</th><th>P</th><th>Sets</th><th>Games</th></tr></thead><tbody>'+
+    c.tabla.map(function(r){return '<tr><td class="pos">'+r.pos+'</td><td class="l">'+tpNom(D,r.id)+'</td><td>'+r.pj+'</td><td>'+r.pg+'</td><td>'+r.pp+'</td><td>'+r.sf+'-'+r.sc+'</td><td>'+r.gf+'-'+r.gc+'</td></tr>';}).join('')+'</tbody></table></div>';
+}
+function tpCuadros(D,t){
+  var f=tpFiltroCat(D,t,'tp_cuadros');
+  var cs=D.cuadros.filter(function(c){return !f.ev||c.ev===f.ev;});
+  if(!cs.length)return f.html+'<div class="card"><div style="padding:8px">'+empty('Los cuadros aún no se publican','Aparecerán aquí cuando Deportes haga el sorteo.')+'</div></div>';
+  return f.html+cs.map(function(c){
+    var ps=D.partidos.filter(function(p){return p.c===c.id;});
+    var rs={};ps.forEach(function(p){(rs[p.r]=rs[p.r]||[]).push(p);});
+    var ev=tpEvento(D,c);
+    var h=secHead([f.ev?'':ev.n,c.n&&c.n!==ev.n?c.n:''].filter(Boolean).join(' · ')||'Cuadro');
+    if(c.tabla)h+=tpTabla(D,c);
+    Object.keys(rs).map(Number).sort(function(a,b){return a-b;}).forEach(function(r){
+      h+='<div class="tpr">'+esc(tpRonda(D,rs[r][0]))+'</div>'+rs[r].map(function(p){return tpPartido(D,p,false,true);}).join('');
+    });
+    if(c.ganador&&!c.tabla)h+='<div class="card tpcards">'+'<div class="tpcamp">'+sv2(IC.estrella,15)+'<div><span>Ganador</span><b>'+tpNom(D,c.ganador)+'</b></div></div></div>';
+    return h;
+  }).join('');
+}
+function tp_resumen(t){return tpCuerpo(t,tpResumen);}
+function tp_partidos(t){return tpCuerpo(t,tpPartidos);}
+function tp_cuadros(t){return tpCuerpo(t,tpCuadros);}
 function loginCta(txt){
   return '<button class="tc" onclick="ir(\'acceso\',{},true)" style="text-align:center"><div class="ov" style="background:linear-gradient(150deg,var(--royal),var(--deep))"></div>'+
     '<div class="in" style="padding:22px 18px"><div style="width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.14);display:grid;place-items:center;margin:0 auto 12px">'+
@@ -1163,8 +1330,9 @@ function vTorneo(){
   var body = ({
     resumen:oResumen,partidos:oPartidos,tabla:oTabla,equipos:oEquipos,disciplinas:oDisciplinas,
     m_resumen:mResumen,m_partidos:mPartidos,m_tabla:mTabla,m_gol:mGol,m_equipos:mEquipos,
-    c_resumen:cResumen,c_partidos:cPartidos,c_tabla:cTabla,c_equipos:cEquipos,c_reglas:cReglas
-  }[tab]||(t.tipo==='camp'?cResumen:oResumen))(t);
+    c_resumen:cResumen,c_partidos:cPartidos,c_tabla:cTabla,c_equipos:cEquipos,c_reglas:cReglas,
+    tp_resumen:tp_resumen,tp_partidos:tp_partidos,tp_cuadros:tp_cuadros
+  }[tab]||(t.tipo==='camp'?cResumen:t.tipo==='tp'?tp_resumen:oResumen))(t);
   return torneoBar(t)+ctabs(t,tab)+'<div class="wrap" style="margin-top:14px">'+body+'</div>'+pie();
 }
 
@@ -2810,6 +2978,7 @@ function buildGolIndex(){
 }
 var GTC_HYDRATED=false;
 function hydrate(){
+  tpCargar();
   return Promise.all([
     sbGet('equipos?select=id,tor,cat,nombre,delegado&order=cat'),
     sbGetAll('jugadores?select=id,equipo_id,nombre,num,socio,invitado,orden&activo=eq.true&order=orden,id'),
@@ -2891,7 +3060,7 @@ function campRegistrar(){
       tabs:[['c_resumen','Resumen'],['c_partidos','Partidos'],['c_tabla','Tabla'],['c_equipos','Equipos'],['c_reglas','Reglas']]};
     camps.push(TOR[t.id]);
   });
-  TOR_LIST=[TOR.olimpiadas2026].concat(camps).concat([TOR.mundialito44,TOR.olimpiadas2025]);
+  TOR_LIST=[TOR.olimpiadas2026].concat(camps).concat([TOR.mundialito44,TOR.olimpiadas2025]).concat(TP_LIST);
   /* índices: equipos y jugadores de campeonatos también son navegables */
   CAMP.equipos.forEach(function(e){EQ[e.id]=e;(e.j||[]).forEach(function(j){if(j.id)JUG[j.id]={n:j.n,equipo_id:e.id,num:j.num};});});
   ALLP=null;
