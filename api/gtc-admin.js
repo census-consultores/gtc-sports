@@ -27,7 +27,7 @@
 //   tp_*             módulo de torneos (réplica de Tournament Planner): ver lib/tp-api.js
 // resultado y partido_edit avisan solos a los dos equipos (push + correo) salvo avisar:false.
 import crypto from 'node:crypto';
-import { avisar, avisoResultado, avisoCambio, destinatarios, enviarCorreos } from '../lib/avisos.js';
+import { avisar, avisoResultado, avisoCambio, destinatarios, enviarCorreos, hoyGye } from '../lib/avisos.js';
 import { tpAdmin, tpPublicas } from '../lib/tp-api.js';
 
 const URL = process.env.SUPABASE_URL || 'https://zwuieoenhwychdbzrsif.supabase.co';
@@ -36,6 +36,7 @@ const SECRET = process.env.SUPABASE_SECRET_KEY;
 const ROLES_WRITE = ['superadmin', 'deportes'];
 const ROLES_READ = ['superadmin', 'deportes', 'comision', 'directorio'];
 const CATS_MENORES = ['I1', 'I2', 'I3', 'I4', 'J1', 'J2', 'J3'];
+const OLI_2026_FIN = '2026-11-21'; // último día de las Olimpiadas 2026 (igual que TOR.olimpiadas2026.hasta en index.html)
 
 function sha256(s) { return crypto.createHash('sha256').update(String(s)).digest('hex'); }
 function b64u(s) { return Buffer.from(s).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
@@ -241,28 +242,36 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
-    // ---- NÓMINAS DE MENORES: administración = completas; socio con sesión = solo quienes tienen goles o tarjetas ----
+    // ---- NÓMINAS DE MENORES (política §7): administración = completas; torneo finalizado = completas para cualquiera;
+    //      torneo en curso = socio con sesión ve solo a quienes tienen goles o tarjetas (tablas de goleadores y tarjetas) ----
     if (accion === 'nominas') {
       const adm = readToken(body.token);
       const esAdm = adm && ROLES_READ.indexOf(adm.r) >= 0;
-      let ok = esAdm;
-      if (!ok) {
-        const u = await authUser(String(body.access_token || ''));
+      let socio = esAdm;
+      if (!socio && body.access_token) {
+        const u = await authUser(String(body.access_token));
         // solo socios registrados en la app (con su cuenta vinculada), no cualquier cuenta de Apple o Google
-        if (u) { const c = await sb('cuentas?select=id&auth_uid=eq.' + encodeURIComponent(u.id) + '&limit=1'); ok = !!(c && c.length); }
+        if (u) { const c = await sb('cuentas?select=id&auth_uid=eq.' + encodeURIComponent(u.id) + '&limit=1'); socio = !!(c && c.length); }
       }
-      if (!ok) return res.status(401).json({ ok: false, msg: 'Inicia sesión.' });
-      const eqs = await sb('equipos?select=id&cat=in.(' + CATS_MENORES.join(',') + ')');
-      const ids = new Set((eqs || []).map(e => e.id));
-      if (!ids.size) return res.status(200).json({ ok: true, jugadores: [] });
-      const lista = [...ids].map(encodeURIComponent).join(',');
+      const fin = new Set(((await sb('torneos?select=id&estado=eq.finalizado')) || []).map(t => t.id));
+      if (hoyGye() > OLI_2026_FIN) fin.add('olimpiadas2026');
+      const eqs = (await sb('equipos?select=id,tor&cat=in.(' + CATS_MENORES.join(',') + ')')) || [];
+      const enFin = new Set(eqs.filter(e => fin.has(e.tor || 'olimpiadas2026')).map(e => e.id));
+      if (!esAdm && !socio && !enFin.size) return res.status(401).json({ ok: false, msg: 'Inicia sesión.' });
+      const ids = esAdm || socio ? eqs.map(e => e.id) : [...enFin];
+      if (!ids.length) return res.status(200).json({ ok: true, jugadores: [] });
+      const lista = ids.map(encodeURIComponent).join(',');
       const todos = await sbTodo('jugadores?select=id,equipo_id,nombre,num,socio,invitado,orden&activo=eq.true&equipo_id=in.(' + lista + ')&order=orden,id');
       let rows = todos;
       if (!esAdm) {
-        const g = await sbTodo('goles?select=jugador_id&equipo_id=in.(' + lista + ')&order=id');
-        const t = await sbTodo('tarjetas?select=jugador_id&equipo_id=in.(' + lista + ')&order=id');
-        const con = new Set([...g, ...t].map(x => x.jugador_id).filter(Boolean));
-        rows = todos.filter(j => con.has(j.id)).map(j => ({ id: j.id, equipo_id: j.equipo_id, nombre: j.nombre, num: j.num }));
+        let con = new Set();
+        if (socio) {
+          const g = await sbTodo('goles?select=jugador_id&equipo_id=in.(' + lista + ')&order=id');
+          const t = await sbTodo('tarjetas?select=jugador_id&equipo_id=in.(' + lista + ')&order=id');
+          con = new Set([...g, ...t].map(x => x.jugador_id).filter(Boolean));
+        }
+        rows = todos.filter(j => enFin.has(j.equipo_id) || con.has(j.id))
+          .map(j => ({ id: j.id, equipo_id: j.equipo_id, nombre: j.nombre, num: j.num, invitado: j.invitado, orden: j.orden }));
       }
       res.setHeader('Cache-Control', 'no-store');
       return res.status(200).json({ ok: true, jugadores: rows });

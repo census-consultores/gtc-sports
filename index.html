@@ -921,7 +921,7 @@ var gtcAuth = {
   cargar:function(){try{var s=localStorage.getItem('gtc_sesion');if(s){this.sesion=JSON.parse(s);if(this.sesion&&this.sesion.token)this.token=this.sesion.token;}}catch(e){}return this.sesion;},
   guardar:function(s){this.sesion=s;if(s&&s.token)this.token=s.token;try{localStorage.setItem('gtc_sesion',JSON.stringify(s));}catch(e){}},
   salir:function(){this.sesion=null;this.token=null;try{localStorage.removeItem('gtc_sesion');}catch(e){}
-    try{(DATA.equipos||[]).forEach(function(e){if(gtcAuth.esMenor(e.cat))e.j=[];});rebuildIndexes();campRegistrar();}catch(e){}
+    try{(DATA.equipos||[]).forEach(function(e){if(gtcAuth.esMenor(e.cat))e.j=[];});rebuildIndexes();campRegistrar();nominasReservadas();}catch(e){}
     S.hist=[];ir('inicio',{},true);},
   /* login de socio real: código de socio + cédula (10 díg.) contra la tabla jugadores */
   buscar:function(socio,cedula){var s=socioNorm(socio),c=cedulaNorm(cedula);
@@ -954,7 +954,7 @@ var gtcAuth = {
   confirmar:function(id){var p=(S.candidatos||[]).filter(function(x){return x.id===id;})[0];return Promise.resolve(p?{ok:true,persona:p}:{ok:false,msg:'No se pudo confirmar.'});},
   registrarAcceso:function(){},
   esMenor:function(cat){return['I1','I2','I3','I4','J1','J2','J3'].indexOf(cat)>=0;},
-  puedeVerNomina:function(eq){var s=this.sesion;if(!s)return false;if(this.esAdmin())return true;
+  puedeVerNomina:function(eq){if(torTerminado(eq.tor||'olimpiadas2026'))return true;var s=this.sesion;if(!s)return false;if(this.esAdmin())return true;
     if(!this.esMenor(eq.cat))return true;return s.rol==='delegado'&&s.equipo===eq.id;}
 };
 
@@ -985,6 +985,8 @@ function goGlobal(v){ window.__calSel=null; if(v==='inicio'||v==='torneos'||v===
 function registradoEn(id){if(gtcAuth.esAdmin())return true;var s=gtcAuth.cargar();return !!(s&&s.torneos&&s.torneos.indexOf(id)>=0);}
 function abrirTorneo(id){S.torneo=id;S.hist=[];if(id==='olimpiadas2025'){ir('hist2025',{},true);return;}var t=TOR[id];ir('torneo',{tab:t.tabs[0][0]},true);}
 /* ¿puede ver el detalle de este torneo? Finalizados: público. En curso: admin o sesión iniciada. */
+/* torneo terminado: finalizado por Deportes, o las Olimpiadas pasada su fecha final (política §7: nóminas completas) */
+function torTerminado(id){var t=TOR[id];return !!t&&(t.estado==='finalizado'||(t.tipo==='oli'&&!!t.hasta&&hoyISO()>t.hasta));}
 function puedeVerTorneo(t){ if(!t)return false; if(t.estado==='finalizado')return true; return gtcAuth.esAdmin()||!!gtcAuth.cargar(); }
 
 /* ================= COMPONENTES ================= */
@@ -2072,7 +2074,7 @@ function vEquipo(){
   /* PLANTILLA — se arma aquí y se agrega al FINAL de la pantalla */
   var plHTML=secHead('Plantilla');
   if(menor&&!puede){
-    plHTML+='<div class="prot">'+sv(IC.candado)+'<div><b>Nómina protegida</b><p>Por tratarse de una categoría de menores, los nombres de los deportistas solo están disponibles para la Comisión de Deportes. '+nJug(e)+' deportistas inscritos.</p></div></div>';
+    plHTML+='<div class="prot">'+sv(IC.candado)+'<div><b>Nómina protegida</b><p>Por tratarse de una categoría de menores, los nombres de los deportistas solo están disponibles para la Comisión de Deportes mientras el torneo está en curso; al finalizar se publican. '+nJug(e)+' deportistas inscritos.</p></div></div>';
   } else {
     plHTML+='<div class="card"><div style="padding:6px 15px">'+e.j.map(function(j,i){
       return '<div class="player" data-pn="'+esc(slugTeam(j.n))+'"><span class="av">'+esc(ini(j.n))+'</span><span class="nm">'+esc(titulo(j.n))+'</span>'+(j.inv?'<span class="rr">Invitado</span>':'<span class="rr pnum">'+(i+1)+'</span>')+'<span class="pstat" data-pn="'+esc(slugTeam(j.n))+'"></span></div>';}).join('')+'</div></div>';
@@ -2788,7 +2790,7 @@ function bannerConsent(){
 }
 function vTerminos(){
   var h=backBar('Volver')+'<div class="wrap" style="padding-top:14px"><h1 class="page">Términos y política de datos</h1>'+
-    '<p class="page-sub">Guayaquil Tenis Club · GTC Sports. Última actualización: 24/09/2026.</p>'+
+    '<p class="page-sub">Guayaquil Tenis Club · GTC Sports. Última actualización: 28/10/2026.</p>'+
     '<div class="terms" style="margin-top:8px">'+
     '<h3>1. Quién trata tus datos</h3>'+
     '<p>El responsable del tratamiento es el <b>Guayaquil Tenis Club</b>, a través de su aplicación deportiva GTC Sports. '+
@@ -2799,6 +2801,7 @@ function vTerminos(){
     '<h3>3. Para qué los usamos</h3>'+
     '<ul><li>Operar la app y darte acceso a los torneos donde estás inscrito.</li>'+
     '<li>Enviarte avisos de tus partidos, cambios y resultados.</li>'+
+    '<li>Mostrar resultados, cuadros y participantes de los torneos: en curso, solo a los socios; una vez finalizados, a cualquier persona.</li>'+
     '<li><b>Comunicaciones y campañas de marketing deportivo del Club</b>, con base en tu actividad e intereses.</li>'+
     '<li>Estadísticas y analítica para mejorar el servicio.</li></ul>'+
     '<h3>4. Base y tu consentimiento</h3>'+
@@ -2809,8 +2812,9 @@ function vTerminos(){
       'Supabase (base de datos e inicio de sesión), Vercel (alojamiento), Resend (correos), Google Firebase y Apple (notificaciones e inicio de sesión), con servidores en Estados Unidos. '+
       'El detalle está en gtcsports.ec/privacidad.html.</p>'+
     '<h3>6. Protección de menores</h3>'+
-    '<p>Las categorías infantiles y juveniles tienen protección reforzada: sus nóminas no se publican; solo la Comisión de Deportes las ve. '+
-      'Los nombres de un menor aparecen únicamente si marca un gol o recibe una tarjeta, y solo para quien inició sesión. '+
+    '<p>Las categorías infantiles y juveniles tienen protección reforzada: mientras el torneo está en curso, sus nóminas no se publican y solo la Comisión de Deportes las ve; '+
+      'el nombre de un menor aparece únicamente en las tablas de goleadores y de tarjetas, y solo para quien inició sesión. '+
+      'Cuando el torneo finaliza, sus resultados y nóminas quedan públicos con los nombres completos de todos los participantes. No se publican fechas de nacimiento ni cédulas. '+
       'El consentimiento de menores corresponde a su representante legal.</p>'+
     '<h3>7. Tus derechos</h3>'+
     '<p>Puedes ejercer tus derechos de acceso, rectificación, eliminación, oposición y portabilidad escribiendo a deportes@guayaquiltenisclub.ec. '+
@@ -3153,14 +3157,14 @@ function hydrate(){
     nominasReservadas();
   }).catch(function(){/* mantiene datos horneados */});
 }
-/* Menores (I1-I4, J1-J3): sus nombres no son públicos. Con sesión, el servidor entrega solo los que tienen goles o tarjetas;
-   a la Comisión de Deportes (administración) le entrega las nóminas completas. */
+/* Menores (I1-I4, J1-J3), política §7: en torneos en curso, con sesión el servidor entrega solo los que tienen goles o tarjetas;
+   en torneos terminados entrega las nóminas completas a cualquiera; a la Comisión de Deportes, todas. */
 function nominasReservadas(){
   var adm=gtcAuth.esAdmin()&&gtcAuth.token;
   var p=adm?Promise.resolve(null):((typeof sbAuth==='object'&&sbAuth&&sbAuth.auth&&sbAuth.auth.getSession)?sbAuth.auth.getSession():Promise.resolve(null));
   return Promise.resolve(p).then(function(sr){
     var at=sr&&sr.data&&sr.data.session&&sr.data.session.access_token;
-    if(!adm&&!at)return null;
+    if(!adm&&!at&&!DATA.equipos.concat(CAMP.equipos||[]).some(function(e){return gtcAuth.esMenor(e.cat)&&torTerminado(e.tor||'olimpiadas2026');}))return null;
     return fetch(API_BASE+'/api/gtc-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion:'nominas',token:adm?gtcAuth.token:'',access_token:at||''})}).then(function(r){return r.ok?r.json():null;});
   }).then(function(j){
     if(!j||!j.ok||!Array.isArray(j.jugadores)||!j.jugadores.length)return;
