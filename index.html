@@ -3430,7 +3430,7 @@ function golOlimpiadasHTML(limit){
   if(!DATA.goles||!DATA.goles.length)return '';
   var pmap={};DATA.partidos.forEach(function(p){pmap[p.id]=p;});
   var agg={};
-  DATA.goles.forEach(function(g){var p=pmap[g.partido_id];if(p&&p.d&&p.d!=='futbol')return;
+  DATA.goles.forEach(function(g){var p=pmap[g.partido_id];if(!p||(p.d&&p.d!=='futbol'))return; /* solo partidos de Olimpiadas (DATA.partidos), no de campeonatos */
     agg[g.jugador_id]=(agg[g.jugador_id]||0)+(+g.cantidad||0);});
   var rows=Object.keys(agg).map(function(id){var j=JUG[id]||{};return {id:id,n:j.n||'',eq:j.equipo_id,g:agg[id]};})
     .filter(function(x){return x.g>0;}).sort(function(a,b){return b.g-a.g;});
